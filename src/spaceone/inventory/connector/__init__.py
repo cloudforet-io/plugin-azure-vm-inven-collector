@@ -1,0 +1,1 @@
+from spaceone.inventory.connector.azure_vm_connector import AzureVMConnector

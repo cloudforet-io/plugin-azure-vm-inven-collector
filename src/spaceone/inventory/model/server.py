@@ -21,7 +21,7 @@ class ServerData(Model):
     load_balancer = ListType(ModelType(LoadBalancer))
     vnet = ModelType(VNet)
     subnet = ModelType(Subnet)
-    # auto_scaling_group = ModelType(AutoScalingGroup, serialize_when_none=False) # TODO : 찾아주세요
+    # auto_scaling_group = ModelType(AutoScalingGroup, serialize_when_none=False) # TODO
     monitor = ModelType(Monitor)
 
 

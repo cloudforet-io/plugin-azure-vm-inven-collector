@@ -10,6 +10,9 @@ from spaceone.inventory.model.security_group import SecurityGroup
 from spaceone.inventory.model.subnet import Subnet
 from spaceone.inventory.model.vnet import VNet
 from spaceone.inventory.model.monitor import Monitor
+from spaceone.inventory.model.vmss import VMSS
+from spaceone.inventory.model.subscription import Subscription
+from spaceone.inventory.model.resource_group import ResourceGroup
 
 # METADATA
 from spaceone.inventory.model.metadata.metadata import *

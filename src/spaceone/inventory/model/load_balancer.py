@@ -3,6 +3,7 @@ from schematics.types import StringType, IntType, DictType, ListType, ModelType
 
 
 class LoadBalancerTags(Model):
+    lb_id = StringType()
     # TODO
     pass
 

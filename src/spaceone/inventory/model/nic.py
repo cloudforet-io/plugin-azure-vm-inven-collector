@@ -3,6 +3,7 @@ from schematics.types import StringType, IntType, ListType, DictType, ModelType
 
 
 class NICTags(Model):
+    nic_id = StringType()
     # TODO
     pass
 

@@ -1,7 +1,7 @@
 from schematics import Model
 from schematics.types import serializable, ModelType, ListType, StringType
 from spaceone.inventory.model import OS, Azure, Hardware, SecurityGroup, Compute, LoadBalancer, VNet, Subnet, \
-    NIC, Disk, ServerMetadata, Monitor
+    NIC, Disk, ServerMetadata, Monitor, VMSS, Subscription, ResourceGroup
 
 
 class ReferenceModel(Model):
@@ -21,8 +21,11 @@ class ServerData(Model):
     load_balancer = ListType(ModelType(LoadBalancer))
     vnet = ModelType(VNet)
     subnet = ModelType(Subnet)
+    vmss = ModelType(VMSS)
     # auto_scaling_group = ModelType(AutoScalingGroup, serialize_when_none=False) # TODO
     monitor = ModelType(Monitor)
+    subscription = ModelType(Subscription)
+    resource_group = ModelType(ResourceGroup)
 
 
 class Server(Model):

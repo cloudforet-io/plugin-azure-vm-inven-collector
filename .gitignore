@@ -5,7 +5,7 @@ build
 *.egg-info
 *.egg
 *.whl
-.idea
+*.idea
 __pycache__
 venv
 local-conf.yml

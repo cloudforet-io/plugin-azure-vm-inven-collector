@@ -10,7 +10,7 @@ class SecurityGroup(Model):
     security_group_name = StringType()
     security_group_id = StringType()
     description = StringType(default="")
-    direction = StringType(choices=("inboud", "outbound"))
+    direction = StringType(choices=("inbound", "outbound"))
     port_range_min = IntType(serialize_when_none=False)
     port_range_max = IntType(serialize_when_none=False)
     port = StringType(serialize_when_none=False)

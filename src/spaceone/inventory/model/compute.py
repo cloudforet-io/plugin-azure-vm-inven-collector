@@ -4,8 +4,7 @@ from schematics.types import  StringType, DateTimeType, ListType, BooleanType, M
 
 class ComputeTags(Model):
     id = StringType()
-    # TODO
-    pass
+
 
 class Compute(Model):
     keypair = StringType()

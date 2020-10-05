@@ -6,5 +6,3 @@ class VNet(Model):
     vnet_id = StringType()
     vnet_name = StringType()
     cidr = StringType()
-    # TODO
-    pass

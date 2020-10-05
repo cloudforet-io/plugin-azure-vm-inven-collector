@@ -7,5 +7,4 @@ class VMSS(Model):
     capacity = IntType()
     admin_username = StringType()
     unique_id = StringType()
-    # TODO
-    pass
+

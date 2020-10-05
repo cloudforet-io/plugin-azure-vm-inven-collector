@@ -1,11 +1,12 @@
 from schematics import Model
-from schematics.types import StringType, IntType, ListType, DictType, ModelType
+from schematics.types import StringType, IntType, ListType, DictType, ModelType, BooleanType
 
 
 class NICTags(Model):
     nic_id = StringType()
-    # TODO
-    pass
+    etag = StringType()
+    enable_accelerated_networking = BooleanType(default=False)
+    enable_ip_forwarding = BooleanType(default=False)
 
 
 class NIC(Model):

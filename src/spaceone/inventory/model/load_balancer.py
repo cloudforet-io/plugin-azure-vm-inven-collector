@@ -4,12 +4,10 @@ from schematics.types import StringType, IntType, DictType, ListType, ModelType
 
 class LoadBalancerTags(Model):
     lb_id = StringType()
-    # TODO
-    pass
 
 
 class LoadBalancer(Model):
-    type = StringType(choices=('application', 'network')) # TODO : Check type
+    type = StringType(choices=('application', 'network'))
     endpoint = StringType()
     port = ListType(IntType())
     name = StringType()

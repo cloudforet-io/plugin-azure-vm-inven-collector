@@ -22,7 +22,6 @@ class ServerData(Model):
     vnet = ModelType(VNet)
     subnet = ModelType(Subnet)
     vmss = ModelType(VMSS)
-    # auto_scaling_group = ModelType(AutoScalingGroup, serialize_when_none=False) # TODO
     monitor = ModelType(Monitor)
     subscription = ModelType(Subscription)
     resource_group = ModelType(ResourceGroup)

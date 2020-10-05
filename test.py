@@ -15,6 +15,7 @@ def main():
 
     subscription_client = SubscriptionClient(credential)
     subscription = subscription_client.subscriptions.list()
+
     for subsc in subscription:
         subscription_id = subsc.subscription_id
 

@@ -1,14 +1,11 @@
-# -*- coding: utf-8 -*-
 import time
 import logging
-# import concurrent.futures
+import concurrent.futures
 
 from spaceone.core.service import *
 from spaceone.inventory.manager.collector_manager import CollectorManager
 
 _LOGGER = logging.getLogger(__name__)
-
-# DEFAULT_REGION = 'us-east-1'
 
 FILTER_FORMAT = [
     {
@@ -129,141 +126,44 @@ class CollectorService(BaseService):
         """
 
         start_time = time.time()
-        all_regions = self.collector_manager.list_regions(params['secret_data'])
         resource_regions = []
         collected_region_code = []
-
-        # parameter setting for multi threading
-        mp_params = self.set_params_for_regions(params, all_regions)
-
-        # google compute
-        # all_regions= self.collector_manager.list_regions(params['secret_data'])
 
         server_resource_format = {'resource_type': 'inventory.Server',
                                   'match_rules': {'1': ['reference.resource_id']}}
         region_resource_format = {'resource_type': 'inventory.Region',
                                   'match_rules': {'1': ['region_code', 'region_type']}}
 
+        resource_groups = self.collector_manager.list_all_resource_groups()
 
-        target_params = []
-        is_instance = False
-        for params in mp_params:
-            _instances = self.collector_manager.list_instances_only(params)
+        mt_params = []
+        for rg in resource_groups:
+            vms = self.collector_manager.list_vms(rg.name)
 
-            if _instances:
-                params.update({
-                    'instances': _instances
+            if list(vms):
+                mt_params.append({
+                    'resource_group': rg,
+                    'vms': vms
                 })
 
-                target_params.append(params)
-                is_instance = True
+        if mt_params:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CONCURRENT) as executor:
+                future_executors = []
+                for mt_param in mt_params:
+                    future_executors.append(executor.submit(self.collector_manager.list_resources, mt_param))
 
-        if is_instance:
-            global_resources = self.collector_manager.get_global_resources(params['secret_data'], all_regions)
-            resources = []
-            for params in target_params:
-                params.update({
-                    'resources': global_resources
-                })
+                for future in concurrent.futures.as_completed(future_executors):
+                    for result in future.result():
+                        collected_region = self.collector_manager.get_region_from_result(result)
 
-                resources.extend(self.collector_manager.list_resources(params))
+                         if collected_region is not None and collected_region.region_code not in collected_region_code:
+                             resource_regions.append(collected_region)
+                             collected_region_code.append(collected_region.region_code)
 
-            for resource in resources:
-                collected_region = self.collector_manager.get_region_from_result(resource)
-
-                if collected_region and collected_region.region_code not in collected_region_code:
-                    resource_regions.append(collected_region)
-                    collected_region_code.append(collected_region.region_code)
-
-                yield resource, server_resource_format
+                        yield result, server_resource_format
 
             for resource_region in resource_regions:
                 yield resource_region, region_resource_format
 
-        # - aws ec2 -
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CONCURRENT) as executor:
-        #     future_executors = []
-        #     for mp_param in mp_params:
-        #         future_executors.append(executor.submit(self.collector_manager.list_resources, mp_param))
-        #
-        #     for future in concurrent.futures.as_completed(future_executors):
-        #         for result in future.result():
-        #             collected_region = self.collector_manager.get_region_from_result(result)
-        #
-        #             if collected_region is not None and collected_region.region_code not in collected_region_code:
-        #                 resource_regions.append(collected_region)
-        #                 collected_region_code.append(collected_region.region_code)
-        #
-        #             yield result, server_resource_format
-        #
-        # for resource_region in resource_regions:
-        #     yield resource_region, region_resource_format
 
         print(f'############## TOTAL FINISHED {time.time() - start_time} Sec ##################')
-
-    def set_params_for_regions(self, params, all_regions):
-        params_for_regions = []
-
-        (query, instance_ids, filter_region_name) = self._check_query(params['filter'])
-        query.append({'Name': 'instance-state-name', 'Values': ['running', 'shutting-down', 'stopping', 'stopped']})
-
-        target_regions = self.get_all_regions(params['secret_data'], filter_region_name)
-
-        for target_region in target_regions:
-            params_for_regions.append({
-                'region_name': target_region,
-                'query': query,
-                'secret_data': params['secret_data'],
-                'instance_ids': instance_ids
-            })
-
-        return params_for_regions
-
-    def _check_query(self, query):
-        """
-        Args:
-            query (dict): example
-                  {
-                      'instance_id': ['i-123', 'i-2222', ...]
-                      'instance_type': 'm4.xlarge',
-                      'region_name': ['aaaa']
-                  }
-        If there is regiona_name in query, this indicates searching only these regions
-        """
-
-        instance_ids = []
-        filters = []
-        region_name = []
-        for key, value in query.items():
-            if key == 'instance_id' and isinstance(value, list):
-                instance_ids = value
-
-            elif key == 'region_name' and isinstance(value, list):
-                region_name.extend(value)
-
-            else:
-                if isinstance(value, list) == False:
-                    value = [value]
-
-                if len(value) > 0:
-                    filters.append({'Name': key, 'Values': value})
-
-        return (filters, instance_ids, region_name)
-
-    def get_all_regions(self, secret_data, filter_region_name):
-        """ Find all region name
-        Args:
-            secret_data: secret data
-            region_name (list): list of region_name if wanted
-
-        Returns: list of region name
-        """
-
-        if 'region_name' in secret_data:
-            return [secret_data['region_name']]
-
-        if len(filter_region_name) > 0:
-            return filter_region_name
-
-        regions = self.collector_manager.list_regions(secret_data, DEFAULT_REGION)
-        return [region.get('RegionName') for region in regions if region.get('RegionName') is not None]

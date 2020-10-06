@@ -65,8 +65,8 @@ def main():
         #
         #     for rg in rg_list:
         #         if rg.type == "Microsoft.Compute/virtualMachines":
-        #             vm = compute_client.virtual_machines.get(resource_group_name, rg.name)
-        #             print(vm.storage_profile.image_reference)
+        #             azure = compute_client.virtual_machines.get(resource_group_name, rg.name)
+        #             print(azure.storage_profile.image_reference)
 
 
 

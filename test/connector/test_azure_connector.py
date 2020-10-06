@@ -33,15 +33,28 @@ class TestAzureConnector(unittest.TestCase):
 
     def test_list_resource_groups(self):
         self.test_set_connect_with_azure_credential()
-        return self.azure_connector.list_resource_groups()
+        # return self.azure_connector.list_resource_groups()
+
+        for rg in self.azure_connector.list_resource_groups():
+            print("-----")
+            print(rg.name)
 
     def test_list_vms(self):
-        vms = self.azure_connector.list_vms('cloudone-test', )
+        vms = self.azure_connector.list_vms('cloudone-test', filter="Name eq 'haely'")
 
         for vm in vms:
             print('0000')
             print(vm)
             print('0000')
+
+    # def test_list_all_vms(self):
+    #     self.test_set_connect_with_azure_credential()
+    #     vms = self.azure_connector.list_all_vms()
+    #
+    #     for vm in vms:
+    #         print('0000')
+    #         print(vm)
+    #         print('0000')
 
 
 if __name__ == "__main__":

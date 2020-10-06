@@ -1,0 +1,10 @@
+from spaceone.inventory.manager.azure.disk_manager import AzureDiskManager
+from spaceone.inventory.manager.azure.load_balancer_manager import AzureLoadBalancerManager
+from spaceone.inventory.manager.azure.network_security_group_manager import AzureNetworkSecurityGroupManager
+from spaceone.inventory.manager.azure.nic_manager import AzureNICManager
+from spaceone.inventory.manager.azure.resource_group_manager import AzureResourceGroupManager
+from spaceone.inventory.manager.azure.vm_manager import AzureVmManager
+from spaceone.inventory.manager.azure.vmss_manager import AzureVMScaleSetManager
+from spaceone.inventory.manager.azure.vnet_manager import AzureVNetManager
+
+

@@ -4,8 +4,9 @@ import time
 import logging
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.connector import AzureVMConnector
-from spaceone.inventory.manager.ec2 import EC2InstanceManager, AutoScalingGroupManager, LoadBalancerManager, \
-    DiskManager, NICManager, VPCManager, SecurityGroupManager, CloudWatchManager
+from spaceone.inventory.manager.azure import AzureDiskManager, AzureLoadBalancerManager, \
+    AzureNetworkSecurityGroupManager, AzureNICManager, AzureResourceGroupManager, AzureVmManager, \
+    AzureVMScaleSetManager, AzureVNetManager
 from spaceone.inventory.manager.metadata.metadata_manager import MetadataManager
 from spaceone.inventory.model.server import Server, ReferenceModel
 from spaceone.inventory.model.region import Region
@@ -18,6 +19,7 @@ class CollectorManager(BaseManager):
 
     def __init__(self, transaction):
         super().__init__(transaction)
+        self.azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
 
     def verify(self, options, secret_data):
         """ Check connection
@@ -27,234 +29,33 @@ class CollectorManager(BaseManager):
         # ACTIVE/UNKNOWN
         return r
 
-    def list_regions(self, secret_data, region_name):
-        azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
-        azure_vm_connector.set_client(secret_data, region_name)
+    def list_all_resource_groups(self):
+        rg_manager = AzureResourceGroupManager()
+        return rg_manager.list_all_resource_groups()
 
-        return azure_vm_connector.list_regions()
-
-    def list_instances_only(self, params):
-        instance_filter = {'zone': params['zone_info']['zone']}
-
-        if len(params.get('instance_ids', [])) > 0:
-            instance_filter.update({'filter': [{'key': 'id', 'values': params['instance_ids']}]})
-
-        return self.azure_vm_connector.list_instances(**instance_filter)
-
-    def list_instances(self, params):
-        server_vos = []
-        azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
-        azure_vm_connector.set_client(params['secret_data'], params['region_name'])
-
-        instance_filter = {}
-        # Instance list and account ID
-        if 'instance_ids' in params and len(params['instance_ids']) > 0:
-            instance_filter.update({'Filters': [{'Name': 'instance-id', 'Values': params['instance_ids']}]})
-
-        instances, account_id = azure_vm_connector.list_instances(**instance_filter)
-
-        print(f'===== [{params["region_name"]}]  /  INSTANCE COUNT : {len(instances)}')
-
-        if len(instances) > 0:
-            ins_manager: EC2InstanceManager = EC2InstanceManager(params, ec2_connector=ec2_connector)
-            asg_manager: AutoScalingGroupManager = AutoScalingGroupManager(params)
-            elb_manager: LoadBalancerManager = LoadBalancerManager(params, ec2_connector=ec2_connector)
-            disk_manager: DiskManager = DiskManager(params)
-            nic_manager: NICManager = NICManager(params)
-            vpc_manager: VPCManager = VPCManager(params)
-            sg_manager: SecurityGroupManager = SecurityGroupManager(params)
-            cw_manager: CloudWatchManager = CloudWatchManager(params)
-
-            meta_manager: MetadataManager = MetadataManager()
-
-            # Instance Type
-            itypes = ec2_connector.list_instance_types()
-
-            # Image
-            images = ec2_connector.list_images(ImageIds=self.get_image_ids(instances))
-
-            # Auto Scaling group list
-            auto_scaling_groups = ec2_connector.list_auto_scaling_groups()
-            launch_configurations = ec2_connector.list_launch_configurations()
-
-            # LB list
-            load_balancers = ec2_connector.list_load_balancers()
-            elb_manager.set_listeners_into_load_balancers(load_balancers)
-
-            target_groups = ec2_connector.list_target_groups()
-
-            for target_group in target_groups:
-                target_healths = ec2_connector.list_target_health(target_group.get('TargetGroupArn'))
-                target_group['target_healths'] = target_healths
-
-            # VPC
-            vpcs = ec2_connector.list_vpcs()
-            subnets = ec2_connector.list_subnets()
-
-            # Volume
-            volumes = ec2_connector.list_volumes()
-
-            # IP
-            eips = ec2_connector.list_elastic_ips()
-
-            # Security Group
-            sgs = ec2_connector.list_security_groups()
-
-            for instance in instances:
-                instance_id = instance.get('InstanceId')
-                instance_ip = instance.get('PrivateIpAddress')
-
-                server_data = ins_manager.get_server_info(instance, itypes, images)
-                auto_scaling_group_vo = asg_manager.get_auto_scaling_info(instance_id, auto_scaling_groups,
-                                                                          launch_configurations)
-
-                load_balancer_vos = elb_manager.get_load_balancer_info(load_balancers, target_groups,
-                                                                       instance_id, instance_ip)
-
-                disk_vos = disk_manager.get_disk_info(self.get_volume_ids(instance), volumes)
-                vpc_vo, subnet_vo = vpc_manager.get_vpc_info(instance.get('VpcId'), instance.get('SubnetId'),
-                                                             vpcs, subnets, params['region_name'])
-
-                nic_vos = nic_manager.get_nic_info(instance.get('NetworkInterfaces'), subnet_vo)
-
-                sg_ids = [security_group.get('GroupId') for security_group in instance.get('SecurityGroups', []) if
-                          security_group.get('GroupId') is not None]
-                sg_rules_vos = sg_manager.get_security_group_info(sg_ids, sgs)
-                cloudwatch_vo = cw_manager.get_cloudwatch_info(instance_id, params['region_name'])
-
-                server_data.update({
-                    'nics': nic_vos,
-                    'disks': disk_vos,
-                    'region_code': params.get("region_name", ''),
-                    'region_type': 'AWS'
-                })
-
-                server_data['data'].update({
-                    'load_balancer': load_balancer_vos,
-                    'security_group': sg_rules_vos,
-                    'vpc': vpc_vo,
-                    'subnet': subnet_vo,
-                    'cloudwatch': cloudwatch_vo
-                })
-
-                if auto_scaling_group_vo:
-                    server_data['data'].update({
-                        'auto_scaling_group': auto_scaling_group_vo
-                    })
-
-                # IP addr : ip_addresses = nics.ip_addresses + data.public_ip_address
-                server_data.update({
-                    'ip_addresses': self.merge_ip_addresses(server_data),
-                    'primary_ip_address': instance_ip
-                })
-
-                server_data['data']['compute']['account'] = account_id
-
-                server_data.update({
-                    '_metadata': meta_manager.get_metadata(),
-                    'reference': ReferenceModel({
-                        'resource_id': server_data['data']['compute']['instance_id'],
-                        'external_link': f"https://{params.get('region_name')}.console.aws.amazon.com/ec2/v2/home?region={params.get('region_name')}#Instances:instanceId={server_data['data']['compute']['instance_id']}"
-                    })
-                })
-
-                server_vos.append(Server(server_data, strict=False))
-
-        return server_vos
+    def list_vms(self, params):
+        # TODO: implementation
+        pass
 
     def list_resources(self, params):
+        """ Get list of resources
+        Args:
+            params:
+                - resource_group
+                - vms
+
+        Returns: list of resources
+        """
         start_time = time.time()
 
         try:
-            resources = self.list_instances(params)
-            print(f'   [{params["region_name"]}] Finished {time.time() - start_time} Seconds')
+            resources = self.list_vms(params)
+            print(f'   [{params["resource_group"]}] Finished {time.time() - start_time} Seconds')
             return resources
 
         except Exception as e:
-            print(f'[ERROR: {params["region_name"]}] : {e}')
+            print(f'[ERROR: {params["resource_group"]}] : {e}')
             raise e
-
-    def get_global_resources(self, secret_data, regions):
-        # print("[ GET zone independent resources ]")
-        if self.gcp_connector is None:
-            self.set_connector(secret_data)
-
-        # Global sources within project_id
-        url_maps = self.gcp_connector.list_url_maps()
-        images = self.gcp_connector.list_images()
-        public_images = self.list_public_images()
-
-        vpcs = self.gcp_connector.list_vpcs()
-        fire_walls = self.gcp_connector.list_firewalls()
-        backend_svcs = self.gcp_connector.list_backend_svcs()
-
-        # Regional Sources with region parameter
-        subnets = []
-        forwarding_rules = []
-        target_pools = []
-
-        for region_param in self.generate_region_params(regions):
-            subnets.extend(self.list_subnets(region_param))
-            forwarding_rules.extend(self.list_forwarding_rules(region_param))
-            target_pools.extend(self.list_target_pools(region_param))
-            url_maps.extend(self.list_region_url_maps(region_param))
-            backend_svcs.extend(self.list_region_backend_svcs(region_param))
-
-        # Generate Thread Pool for collecting Subnets
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CONCURRENT) as executor:
-        #     future_executors = []
-        #     for mt_param in mt_params:
-        #         future_executors.append(executor.submit(self.list_subnets, mt_param))
-        #
-        #     for future in concurrent.futures.as_completed(future_executors):
-        #         for result in future.result():
-        #             subnets.append(result)
-
-        # Generate Thread Pool for collecting Forwarding Rules
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CONCURRENT) as executor:
-        #     future_executors = []
-        #     for mt_param in mt_params:
-        #         future_executors.append(executor.submit(self.list_forwarding_rules, mt_param))
-        #
-        #     for future in concurrent.futures.as_completed(future_executors):
-        #         for result in future.result():
-        #             forwarding_rules.append(result)
-
-        # print("====== END of zone independent resources")
-
-        return {
-            'public_images': public_images,
-            'images': images,
-            'vpcs': vpcs,
-            'subnets': subnets,
-            'fire_walls': fire_walls,
-            'forwarding_rules': forwarding_rules,
-            'target_pools': target_pools,
-            'url_maps': url_maps,
-            'backend_svcs': backend_svcs
-        }
-
-    @staticmethod
-    def get_volume_ids(instance):
-        block_device_mappings = instance.get('BlockDeviceMappings', [])
-        return [block_device_mapping['Ebs']['VolumeId'] for block_device_mapping in block_device_mappings if block_device_mapping.get('Ebs') is not None]
-
-    @staticmethod
-    def get_image_ids(instances):
-        image_ids = [instance.get('ImageId') for instance in instances if instance.get('ImageId') is not None]
-        return list(set(image_ids))
-
-    @staticmethod
-    def merge_ip_addresses(server_data):
-        nics = server_data['nics']
-
-        nic_ip_addresses = []
-        for nic in nics:
-            nic_ip_addresses.extend(nic.ip_addresses)
-
-        merge_ip_address = nic_ip_addresses
-
-        return list(set(merge_ip_address))
 
     @staticmethod
     def get_region_from_result(result):

@@ -1,4 +1,3 @@
-# from spaceone.inventory.model.auto_scaling_group import AutoScalingGroup
 from spaceone.inventory.model.azure import Azure
 from spaceone.inventory.model.compute import Compute
 from spaceone.inventory.model.disk import Disk
@@ -13,6 +12,7 @@ from spaceone.inventory.model.monitor import Monitor
 from spaceone.inventory.model.vmss import VMSS
 from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.resource_group import ResourceGroup
+from spaceone.inventory.model.region import Region
 
 # METADATA
 from spaceone.inventory.model.metadata.metadata import *

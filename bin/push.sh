@@ -2,5 +2,5 @@
 # How to upload
 ./build.sh
 
-#docker push pyengine/azure-vm:1.0
-#docker push spaceone/azure-vm:1.0
+#docker push pyengine/azure-azure:1.0
+#docker push spaceone/azure-azure:1.0

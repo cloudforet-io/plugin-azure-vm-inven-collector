@@ -50,14 +50,9 @@ class AzureVMConnector(BaseConnector):
     def list_resource_groups(self, **query):
         return self.resource_client.resource_groups.list(**query)
 
-    def list_vms(self, resource_group_name, **query):
-        # status_filter = {'key': 'status', 'values': ['STARTING', 'RUNNING', 'STOPPING', 'STOPPED', 'DEALLOCATING', 'DEALLOCATED']}
-        #
-        # if 'filter' in query:
-        #     query.get('filter').append(status_filter)
-        # else:
-        #     query.update({'filter': [status_filter]})
-        #
-        # query = self.generate_key_query('filter', self._get_filter_to_params(**query), '', is_default=True, **query)
+    def list_all_vms(self, **query):
+        return self.compute_client.virtual_machines.list_all(**query)
 
+    def list_vms(self, resource_group_name, **query):
         return self.compute_client.virtual_machines.list(resource_group_name=resource_group_name, **query)
+

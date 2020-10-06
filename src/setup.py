@@ -21,7 +21,7 @@ with open('VERSION', 'r') as f:
     f.close()
 
 setup(
-    name='plugin-azure-vm',
+    name='plugin-azure-azure',
     version=VERSION,
     description='AZURE VM inventory collector',
     long_description='',

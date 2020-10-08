@@ -34,8 +34,37 @@ class CollectorManager(BaseManager):
         return rg_manager.list_all_resource_groups()
 
     def list_vms(self, params):
-        # TODO: implementation
-        pass
+        vm_manager = AzureVmManager()
+        return vm_manager.list_vms(params)
+
+    def list_all_resources(self, params):
+        server_vos = []
+        azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
+        azure_vm_connector.set_connect(params['secret_data'])
+
+        # call all managers
+        vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
+        disk_manager: AzureDiskManager = AzureDiskManager(params, azure_vm_connector=azure_vm_connector)
+        load_balancer_manager: AzureLoadBalancerManager = AzureLoadBalancerManager(params, azure_vm_connector=azure_vm_connector)
+        network_security_group_manager: AzureNetworkSecurityGroupManager = AzureNetworkSecurityGroupManager(params, azure_vm_connector=azure_vm_connector)
+        nic_manager: AzureNICManager = AzureNICManager(params, azure_vm_connector=azure_vm_connector)
+        resource_group_manager: AzureResourceGroupManager(params, azure_vm_connector=azure_vm_connector)
+        vmss_manager: AzureVMScaleSetManager = AzureVMScaleSetManager(params, azure_vm_connector=azure_vm_connector)
+        vnet_manager: AzureVNetManager = AzureVNetManager(params, azure_vm_connector=azure_vm_connector)
+
+        # VM list in resource group
+        vms = azure_vm_connector.list_vms_in_rg(params['resource_group'].get('name'))
+
+        # compute - keypair
+        # resources = azure_vm_connector.list_resources(params['resource_group'].get('name'))
+        # for rsc in resources:
+        #     if rsc.type == 'Microsoft.Compute/sshPublicKeys':
+        #         ssh_name = rsc.name
+
+        for vm in vms:
+            server_data = vm_manager.get_vm_info(vm)
+
+        return server_vos
 
     def list_resources(self, params):
         """ Get list of resources
@@ -49,7 +78,7 @@ class CollectorManager(BaseManager):
         start_time = time.time()
 
         try:
-            resources = self.list_vms(params)
+            resources = self.list_all_resources(params)
             print(f'   [{params["resource_group"]}] Finished {time.time() - start_time} Seconds')
             return resources
 

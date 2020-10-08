@@ -83,7 +83,7 @@ class CollectorService(BaseService):
         return {'metadata': capability}
 
     @transaction
-    @check_required(['options','secret_data'])
+    @check_required(['options', 'secret_data'])
     def verify(self, params):
         """ verify options capability
         Args:
@@ -98,17 +98,8 @@ class CollectorService(BaseService):
         """
         manager = self.locator.get_manager('CollectorManager')
         secret_data = params['secret_data']
-        # azure
         options = params.get('options', {})
         active = manager.verify(options, secret_data)
-
-        # ec2
-        # region_name = params.get('region_name', DEFAULT_REGION)
-        # active = manager.verify(secret_data, region_name)
-
-        # google compute
-        # options = params.get('options', {})
-        # active = manager.verify(options, secret_data)
 
         return {}
 
@@ -156,14 +147,13 @@ class CollectorService(BaseService):
                     for result in future.result():
                         collected_region = self.collector_manager.get_region_from_result(result)
 
-                         if collected_region is not None and collected_region.region_code not in collected_region_code:
-                             resource_regions.append(collected_region)
-                             collected_region_code.append(collected_region.region_code)
+                        if collected_region is not None and collected_region.region_code not in collected_region_code:
+                            resource_regions.append(collected_region)
+                            collected_region_code.append(collected_region.region_code)
 
                         yield result, server_resource_format
 
             for resource_region in resource_regions:
                 yield resource_region, region_resource_format
-
 
         print(f'############## TOTAL FINISHED {time.time() - start_time} Sec ##################')

@@ -42,6 +42,8 @@ class CollectorManager(BaseManager):
         azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
         azure_vm_connector.set_connect(params['secret_data'])
 
+        resource_group_name = params['resource_group'].get('name')
+
         # call all managers
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
         disk_manager: AzureDiskManager = AzureDiskManager(params, azure_vm_connector=azure_vm_connector)
@@ -53,7 +55,8 @@ class CollectorManager(BaseManager):
         vnet_manager: AzureVNetManager = AzureVNetManager(params, azure_vm_connector=azure_vm_connector)
 
         # VM list in resource group
-        vms = azure_vm_connector.list_vms_in_rg(params['resource_group'].get('name'))
+        vms = azure_vm_connector.list_vms_in_rg(resource_group_name)
+        # vms = azure_vm_connector.list_vms(resource_group_name)
 
         # compute - keypair
         # resources = azure_vm_connector.list_resources(params['resource_group'].get('name'))
@@ -61,8 +64,12 @@ class CollectorManager(BaseManager):
         #     if rsc.type == 'Microsoft.Compute/sshPublicKeys':
         #         ssh_name = rsc.name
 
+        disk_vos = disk_manager.get_disk_info(vms, resource_group_name)
+
         for vm in vms:
-            server_data = vm_manager.get_vm_info(vm)
+            server_data = vm_manager.get_vm_info(vm, resource_group_name)
+
+        server_vos.append(Server(server_data), strict=False)
 
         return server_vos
 

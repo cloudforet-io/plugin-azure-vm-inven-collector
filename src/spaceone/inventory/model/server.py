@@ -13,11 +13,11 @@ class ReferenceModel(Model):
 
 
 class ServerData(Model):
-    os = ModelType(OS)
-    azure = ModelType(Azure)
-    hardware = ModelType(Hardware)
+    os = ModelType(OS) ###
+    azure = ModelType(Azure) ###
+    hardware = ModelType(Hardware) ###
     security_group = ListType(ModelType(SecurityGroup))
-    compute = ModelType(Compute)
+    compute = ModelType(Compute) ###
     load_balancer = ListType(ModelType(LoadBalancer))
     vnet = ModelType(VNet)
     subnet = ModelType(Subnet)
@@ -28,8 +28,8 @@ class ServerData(Model):
 
 
 class Server(Model):
-    name = StringType()
-    region_code = StringType()
+    name = StringType() ###
+    region_code = StringType() ###
     region_type = StringType(default='AZURE')
     data = ModelType(ServerData)
     nics = ListType(ModelType(NIC))
@@ -37,7 +37,7 @@ class Server(Model):
     primary_ip_address = StringType(default='')
     ip_addresses = ListType(StringType())
     server_type = StringType(default='VM')
-    os_type = StringType(choices=('LINUX', 'WINDOWS'))
+    os_type = StringType(choices=('LINUX', 'WINDOWS')) ###
     provider = StringType(default='azure')
     _metadata = ModelType(ServerMetadata, serialized_name='metadata')
     reference = ModelType(ReferenceModel)

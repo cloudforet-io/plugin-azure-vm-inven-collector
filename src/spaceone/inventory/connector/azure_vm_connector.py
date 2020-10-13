@@ -69,3 +69,11 @@ class AzureVMConnector(BaseConnector):
     def list_resources(self, resource_group_name):
         return self.resource_client.resources.list_by_resource_group(resource_group_name=resource_group_name)
 
+    def list_network_interfaces(self, resource_group_name, nic_name):
+        return self.network_client.network_interfaces.get(resource_group_name, nic_name)
+
+    def list_nic_disks(self, resource_group_name, disk_name):
+        return self.network_client.network_interfaces.get(resource_group_name, disk_name)
+
+    def list_disks(self, resource_group_name, disk_name):
+        return self.compute_client.disks.get(resource_group_name, disk_name)

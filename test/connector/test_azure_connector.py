@@ -40,12 +40,13 @@ class TestAzureConnector(unittest.TestCase):
             print(rg.name)
 
     def test_list_vms(self):
-        vms = self.azure_connector.list_vms('cloudone-test', filter="Name eq 'haely'")
+        # AVAILABILITY_SET_NAME = self.get_resource_name("haely")
+        vms = self.azure_connector.list_vms('cloudone-test', ) # filter="resourceType eq 'haely'"   {'filter': 'haely'}
 
         for vm in vms:
-            print('0000')
+            print('=====')
             print(vm)
-            print('0000')
+            print('=====')
 
     # def test_list_all_vms(self):
     #     self.test_set_connect_with_azure_credential()

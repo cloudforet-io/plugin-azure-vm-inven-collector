@@ -3,5 +3,5 @@ from schematics.types import IntType, FloatType
 
 
 class Hardware(Model):
-    core = IntType(default=0)
-    memory = FloatType(default=0.0)
+    core = IntType(default=0) ###
+    memory = FloatType(default=0.0) ###

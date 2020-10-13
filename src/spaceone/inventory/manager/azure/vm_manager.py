@@ -16,7 +16,7 @@ class AzureVmManager(BaseManager):
     def list_vms(self, resource_group):
         return self.azure_vm_connector.list_vms(resource_group)
 
-    def get_vm_info(self, vm):
+    def get_vm_info(self, vm, resource_group_name):
         '''
         server_data = {
             "os_type": "LINUX" | "WINDOWS"
@@ -73,7 +73,7 @@ class AzureVmManager(BaseManager):
         os_data = self.get_os_data(vm.storage_profile)
         hardware_data = self.get_hardware_data(vm)
         azure_data = self.get_azure_data(vm)
-        compute_data = self.get_compute_data(vm)
+        compute_data = self.get_compute_data(vm, resource_group_name)
 
         vm_dic.update({
             'data': {
@@ -103,34 +103,62 @@ class AzureVmManager(BaseManager):
         return OS(os_data, strict=False)
 
     def get_hardware_data(self, vm):
-        # vm_size = self.match_vm_type(vm.hardware_profile.vm_size)
         location = vm.location
+        size = vm.hardware_profile.vm_size
 
-        hardware_data = {
-            'core': self.get_vm_size(location=location).get('number_of_cores'),
-            'memory': round(float((self.get_vm_size(location=location).get('memory_in_mb'))/1024), 2)
-        }
+        hardware_data = self.get_vm_hardware_info(location, size)
+
         return Hardware(hardware_data, strict=False)
 
-    def get_compute_data(self, vm):
+    def get_compute_data(self, vm, resource_group_name):
         compute_data = {
             'az': vm.location,
             'instance_state': vm.instance_view.statuses.display_status,
+            'instance_type': vm.hardware_profile.vm_size,
+            'launched_at': self.get_launched_time(vm.storage_profile.os_disk.managed_disk, resource_group_name),
             'instance_id': vm.vm_id,
             'instance_name': vm.name,
-            'tags': ''
+            'security_groups': self.get_security_groups(vm.network_profile.network_interfaces, resource_group_name),
+            'image': self.get_os_details(vm.storage_profile.image_reference),
+            'tags': {
+                'id': vm.id
+            }
         }
         return Compute(compute_data, strict=False)
 
     def get_azure_data(self, vm):
         azure_data = {
-            'boot_diagnostics': vm.diagnostics_profile.boot_diagnostics.enabled,
+            'boot_diagnostics': vm.diagnostics_profile.boot_diagnostics,
             'ultra_ssd_enabled': vm.additional_capabilities.ultra_ssd_enabled,
             'write_accelerator_enabled': vm.storage_profile.os_disk.write_accelerator_enabled,
             'priority': vm.priority,
-            'tags': ''
+            'tags': self.get_tags(vm.tags)
+
         }
         return Azure(azure_data, strict=False)
+
+    def get_vm_hardware_info(self, location, size):
+        result = {}
+        vm_sizes = self.azure_vm_connector.list_virtual_machine_sizes(location)
+        for vm_size in vm_sizes:
+            if vm_size.name == size:
+                result.update({'core': vm_size.number_of_cores})
+                result.update({'memory': round(float(vm_size.memory_in_mb/1074), 2)})
+
+        return result
+
+    def get_launched_time(self, managed_disk, resource_group_name):
+        disk_name_arr = managed_disk.id.split('/')
+        disk_name = disk_name_arr[-1]
+        disk_info = self.azure_vm_connector.list_nic_disks(resource_group_name, disk_name)
+        return disk_info.time_created
+
+    def get_security_groups(self, network_interfaces, resource_group_name):
+        for nic in network_interfaces:
+            id_arr = nic.id.split('/')
+            nic_name = id_arr[-1]
+            list_nic = self.azure_vm_connector.list_network_interfaces(resource_group_name, nic_name)
+            return list_nic.network_security_group.id
 
     @staticmethod
     def get_os_type(os_disk):
@@ -155,3 +183,15 @@ class AzureVmManager(BaseManager):
     def match_vm_type(vm_size):
         # TODO: find vm_size_list checking method
         pass
+
+    @staticmethod
+    def get_tags(tags):
+        tags_result = []
+        if tags is not None:
+            for k, v in tags.items():
+                tag_info = {}
+                tag_info.update({'key': k})
+                tag_info.update({'value': v})
+                tags_result.append(tag_info)
+
+        return tags_result

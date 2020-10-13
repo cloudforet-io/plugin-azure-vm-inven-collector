@@ -3,15 +3,17 @@ from schematics.types import StringType, IntType, BooleanType, ModelType, FloatT
 
 
 class DiskTags(Model):
-    disk_name = StringType()
-    caching = StringType(choices=('None', 'ReadOnly', 'ReadWrite'))
-    storage_account_type = StringType(choices=('Standard_LRS', 'Premium_LRS', 'StandardSSD_LRS', 'UltraSSD_LRS'))
-    disk_encryption_set = StringType(choices=('PMK', 'CMK'), default='PMK')
+    disk_name = StringType() ###
+    caching = StringType(choices=('None', 'ReadOnly', 'ReadWrite')) ###
+    storage_account_type = StringType(choices=('Standard_LRS', 'Premium_LRS', 'StandardSSD_LRS', 'UltraSSD_LRS')) ###
+    disk_encryption_set = StringType(choices=('PMK', 'CMK'), default='PMK') ###
+    iops = IntType() ###
+    throughput_mbps = IntType() ###
 
 
 class Disk(Model):
-    device_index = IntType()
-    device = StringType()
-    disk_type = StringType(default="disk")
-    size = FloatType()
+    device_index = IntType() ###
+    device = StringType() ###
+    disk_type = StringType(default="disk") ###
+    size = FloatType() ###
     tags = ModelType(DiskTags, default={})

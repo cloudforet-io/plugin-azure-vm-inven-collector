@@ -29,8 +29,8 @@ class AzureVMConnector(BaseConnector):
         self.subscription_client = None
 
     def verify(self, options, secret_data):
-        # TODO
-        pass
+        self.set_connect(secret_data)
+        return "ACTIVE"
 
     def set_connect(self, secret_data):
         subscription_id = secret_data['subscription_id']
@@ -47,8 +47,8 @@ class AzureVMConnector(BaseConnector):
         self.resource_client = ResourceManagementClient(credential=credential, subscription_id=subscription_id)
         self.subscription_client: SubscriptionClient = SubscriptionClient(credential=credential)
 
-    def list_resource_groups(self, **query):
-        return self.resource_client.resource_groups.list(**query)
+    def list_resource_groups(self):
+        return self.resource_client.resource_groups.list()
 
     # def list_all_vms(self, params, **query):
     #     vms = []

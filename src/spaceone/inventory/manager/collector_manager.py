@@ -19,7 +19,7 @@ class CollectorManager(BaseManager):
 
     def __init__(self, transaction):
         super().__init__(transaction)
-        self.azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
+        # self.azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
 
     def verify(self, options, secret_data):
         """ Check connection
@@ -29,20 +29,27 @@ class CollectorManager(BaseManager):
         # ACTIVE/UNKNOWN
         return r
 
-    def list_all_resource_groups(self):
-        rg_manager = AzureResourceGroupManager()
+    def list_all_resource_groups(self, params):
+        azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
+        azure_vm_connector.set_connect(params['secret_data'])
+
+        rg_manager: AzureResourceGroupManager = AzureResourceGroupManager(params, azure_vm_connector=azure_vm_connector)
         return rg_manager.list_all_resource_groups()
 
-    def list_vms(self, params):
-        vm_manager = AzureVmManager()
-        return vm_manager.list_vms(params)
+    def list_vms(self, params, resource_group_name):
+        azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
+        azure_vm_connector.set_connect(params['secret_data'])
+
+        vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
+        return vm_manager.list_vms(resource_group_name)
 
     def list_all_resources(self, params):
         server_vos = []
         azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
         azure_vm_connector.set_connect(params['secret_data'])
 
-        resource_group_name = params['resource_group'].get('name')
+        resource_group_name = params['resource_group'].name
+        print(resource_group_name)
 
         # call all managers
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
@@ -55,21 +62,17 @@ class CollectorManager(BaseManager):
         vnet_manager: AzureVNetManager = AzureVNetManager(params, azure_vm_connector=azure_vm_connector)
 
         # VM list in resource group
-        vms = azure_vm_connector.list_vms_in_rg(resource_group_name)
+        # vms = azure_vm_connector.list_vms_in_rg(resource_group_name)
         # vms = azure_vm_connector.list_vms(resource_group_name)
-
-        # compute - keypair
-        # resources = azure_vm_connector.list_resources(params['resource_group'].get('name'))
-        # for rsc in resources:
-        #     if rsc.type == 'Microsoft.Compute/sshPublicKeys':
-        #         ssh_name = rsc.name
+        vms = params['vms']
 
         disk_vos = disk_manager.get_disk_info(vms, resource_group_name)
 
         for vm in vms:
+            print(vm)
             server_data = vm_manager.get_vm_info(vm, resource_group_name)
 
-        server_vos.append(Server(server_data), strict=False)
+        # server_vos.append(Server(server_data), strict=False)
 
         return server_vos
 

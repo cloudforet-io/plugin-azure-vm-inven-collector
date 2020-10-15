@@ -115,7 +115,6 @@ class CollectorService(BaseService):
 
         Returns: list of resources
         """
-
         start_time = time.time()
         resource_regions = []
         collected_region_code = []
@@ -125,7 +124,7 @@ class CollectorService(BaseService):
         region_resource_format = {'resource_type': 'inventory.Region',
                                   'match_rules': {'1': ['region_code', 'region_type']}}
 
-        resource_groups = self.collector_manager.list_all_resource_groups()
+        resource_groups = self.collector_manager.list_all_resource_groups(params)
 
         mt_params = []
         for rg in resource_groups:
@@ -133,6 +132,7 @@ class CollectorService(BaseService):
 
             if list(vms):
                 mt_params.append({
+                    'secret_data': params['secret_data'],
                     'resource_group': rg,
                     'vms': vms
                 })

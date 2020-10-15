@@ -13,8 +13,8 @@ class AzureVmManager(BaseManager):
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
-    def list_vms(self, resource_group):
-        return self.azure_vm_connector.list_vms(resource_group)
+    def list_vms(self, resource_group_name):
+        return self.azure_vm_connector.list_vms(resource_group_name)
 
     def get_vm_info(self, vm, resource_group_name):
         '''
@@ -68,6 +68,8 @@ class AzureVmManager(BaseManager):
             }
         }
         '''
+
+        print("IN!!")
 
         vm_dic = self.get_vm_dic(vm)
         os_data = self.get_os_data(vm.storage_profile)

@@ -43,8 +43,6 @@ class TestMetricManager(unittest.TestCase):
         self.collector_service.verify({'options': {}, 'secret_data': secret_data})
 
         params = {'options': {}, 'secret_data': secret_data, 'filter': {}}
-        print(params)
-        print('******')
 
         resource_groups = self.collector_manager.list_all_resource_groups(params)
 
@@ -60,13 +58,12 @@ class TestMetricManager(unittest.TestCase):
                 })
 
         for mt_param in mt_params:
-            print("-----")
-            print(mt_param)
-            print("-----")
+            # print(mt_param)  # specific resource_group
             self.collector_manager.list_all_resources(mt_param)
 
         # self.collector_manager.list_resources(params)
         # self.collector_service.list_resources(params)
+
 
 if __name__ == "__main__":
     unittest.main(testRunner=RichTestRunner)

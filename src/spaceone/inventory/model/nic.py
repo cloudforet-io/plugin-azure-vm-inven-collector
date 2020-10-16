@@ -3,7 +3,7 @@ from schematics.types import StringType, IntType, ListType, DictType, ModelType,
 
 
 class NICTags(Model):
-    nic_id = StringType()
+    name = StringType()
     etag = StringType()
     enable_accelerated_networking = BooleanType(default=False)
     enable_ip_forwarding = BooleanType(default=False)

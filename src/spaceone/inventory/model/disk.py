@@ -14,6 +14,6 @@ class DiskTags(Model):
 class Disk(Model):
     device_index = IntType() ###
     device = StringType() ###
-    disk_type = StringType(default="disk") ###
+    disk_type = StringType(choices=('os_disk', 'data_disk'))
     size = FloatType() ###
     tags = ModelType(DiskTags, default={})

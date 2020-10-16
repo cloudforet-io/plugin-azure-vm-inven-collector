@@ -13,7 +13,15 @@ class AzureLoadBalancerManager(BaseManager):
     def get_load_balancer_info(self, lb):
         '''
         lb_data = {
-
+            "type" = "application" | "network",
+            "endpoint" = "",
+            "port" = []
+            "name" = ""
+            "protocol" = []
+            "scheme" = "internet-facing" | "internal"
+            "tags" = {
+                "lb_id" = ""
+            }
         }
         '''
 

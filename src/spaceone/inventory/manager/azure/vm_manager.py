@@ -5,6 +5,7 @@ from spaceone.inventory.model.os import OS
 from spaceone.inventory.model.hardware import Hardware
 from spaceone.inventory.connector.azure_vm_connector import AzureVMConnector
 
+import pprint
 
 class AzureVmManager(BaseManager):
 
@@ -69,8 +70,6 @@ class AzureVmManager(BaseManager):
         }
         '''
 
-        print("IN!!")
-
         vm_dic = self.get_vm_dic(vm)
         os_data = self.get_os_data(vm.storage_profile)
         hardware_data = self.get_hardware_data(vm)
@@ -85,6 +84,7 @@ class AzureVmManager(BaseManager):
                 'compute': compute_data
             }
         })
+        # pprint.pprint(vm_dic)
 
         return vm_dic
 
@@ -115,9 +115,9 @@ class AzureVmManager(BaseManager):
     def get_compute_data(self, vm, resource_group_name):
         compute_data = {
             'az': vm.location,
-            'instance_state': vm.instance_view.statuses.display_status,
+            'instance_state': self.get_instance_state(vm.instance_view),
             'instance_type': vm.hardware_profile.vm_size,
-            'launched_at': self.get_launched_time(vm.storage_profile.os_disk.managed_disk, resource_group_name),
+            'launched_at': self.get_launched_time(vm.storage_profile.os_disk.managed_disk.id, resource_group_name),
             'instance_id': vm.vm_id,
             'instance_name': vm.name,
             'security_groups': self.get_security_groups(vm.network_profile.network_interfaces, resource_group_name),
@@ -130,12 +130,11 @@ class AzureVmManager(BaseManager):
 
     def get_azure_data(self, vm):
         azure_data = {
-            'boot_diagnostics': vm.diagnostics_profile.boot_diagnostics,
-            'ultra_ssd_enabled': vm.additional_capabilities.ultra_ssd_enabled,
+            'boot_diagnostics': vm.diagnostics_profile.boot_diagnostics.enabled,
+            'ultra_ssd_enabled': self.get_ultra_ssd_enabled(vm.additional_capabilities),
             'write_accelerator_enabled': vm.storage_profile.os_disk.write_accelerator_enabled,
             'priority': vm.priority,
             'tags': self.get_tags(vm.tags)
-
         }
         return Azure(azure_data, strict=False)
 
@@ -149,18 +148,37 @@ class AzureVmManager(BaseManager):
 
         return result
 
-    def get_launched_time(self, managed_disk, resource_group_name):
-        disk_name_arr = managed_disk.id.split('/')
+    def get_launched_time(self, managed_disk_id, resource_group_name):
+        disk_name_arr = managed_disk_id.split('/')
         disk_name = disk_name_arr[-1]
-        disk_info = self.azure_vm_connector.list_nic_disks(resource_group_name, disk_name)
+        disk_info = self.azure_vm_connector.list_disk(resource_group_name, disk_name)
         return disk_info.time_created
 
     def get_security_groups(self, network_interfaces, resource_group_name):
+        security_groups = []
         for nic in network_interfaces:
             id_arr = nic.id.split('/')
             nic_name = id_arr[-1]
-            list_nic = self.azure_vm_connector.list_network_interfaces(resource_group_name, nic_name)
-            return list_nic.network_security_group.id
+            list_nic = self.azure_vm_connector.list_network_interfaces(resource_group_name)
+            for list_n in list_nic:
+                if list_n.name == nic_name:
+                    security_groups.append(nic_name)
+
+        return security_groups
+
+    @staticmethod
+    def get_instance_state(instance_view):
+        if instance_view is not None:
+            return instance_view.statuses.display_statues
+        else:
+            return ''
+
+    @staticmethod
+    def get_ultra_ssd_enabled(additional_capabilities):
+        if additional_capabilities is not None:
+            return additional_capabilities.ultra_ssd_enabled
+        else:
+            return False
 
     @staticmethod
     def get_os_type(os_disk):

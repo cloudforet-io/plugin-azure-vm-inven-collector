@@ -2,6 +2,7 @@ __all__ = ['CollectorManager']
 
 import time
 import logging
+import pprint
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.connector import AzureVMConnector
 from spaceone.inventory.manager.azure import AzureDiskManager, AzureLoadBalancerManager, \
@@ -43,13 +44,12 @@ class CollectorManager(BaseManager):
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
         return vm_manager.list_vms(resource_group_name)
 
-    def list_all_resources(self, params):
-        server_vos = []
+    def list_all_resources(self, params):  # just one mt_param is given! several vms in params
+        server_vos = []  # list of vm instances info. each instance in console
         azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
         azure_vm_connector.set_connect(params['secret_data'])
 
         resource_group_name = params['resource_group'].name
-        print(resource_group_name)
 
         # call all managers
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
@@ -61,18 +61,24 @@ class CollectorManager(BaseManager):
         vmss_manager: AzureVMScaleSetManager = AzureVMScaleSetManager(params, azure_vm_connector=azure_vm_connector)
         vnet_manager: AzureVNetManager = AzureVNetManager(params, azure_vm_connector=azure_vm_connector)
 
-        # VM list in resource group
-        # vms = azure_vm_connector.list_vms_in_rg(resource_group_name)
-        # vms = azure_vm_connector.list_vms(resource_group_name)
         vms = params['vms']
 
-        disk_vos = disk_manager.get_disk_info(vms, resource_group_name)
+        load_balancers = azure_vm_connector.list_load_balancers(resource_group_name)
 
-        for vm in vms:
-            print(vm)
+        for vm in vms:  # each vm
             server_data = vm_manager.get_vm_info(vm, resource_group_name)
 
-        # server_vos.append(Server(server_data), strict=False)
+            disk_vos = disk_manager.get_disk_info(vm, resource_group_name)
+            server_data.update({'disks': disk_vos})
+
+            nic_vos = nic_manager.get_nic_info(vm, resource_group_name)
+            server_data.update({'nics': nic_vos})
+
+            lb_vos = load_balancer_manager.get_load_balancer_info(load_balancers)
+
+            # print(server_data)
+
+            server_vos.append(Server(server_data, strict=False))
 
         return server_vos
 

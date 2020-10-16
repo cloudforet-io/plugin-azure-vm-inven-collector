@@ -141,7 +141,7 @@ class CollectorService(BaseService):
             with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CONCURRENT) as executor:
                 future_executors = []
                 for mt_param in mt_params:
-                    future_executors.append(executor.submit(self.collector_manager.list_resources, mt_param))
+                    future_executors.append(executor.submit(self.collector_manager.list_resources, mt_param))  # one by one mt_params which has vm
 
                 for future in concurrent.futures.as_completed(future_executors):
                     for result in future.result():

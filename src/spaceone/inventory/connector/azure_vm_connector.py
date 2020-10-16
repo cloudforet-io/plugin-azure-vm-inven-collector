@@ -55,7 +55,7 @@ class AzureVMConnector(BaseConnector):
     #     return self.compute_client.virtual_machines.list_all(**query)
 
     def list_vms(self, resource_group_name, **query):
-        return self.compute_client.virtual_machines.list(resource_group_name=resource_group_name, **query)
+        return list(self.compute_client.virtual_machines.list(resource_group_name=resource_group_name, **query))
 
     def list_instance_types(self, **query):
         pass
@@ -64,16 +64,25 @@ class AzureVMConnector(BaseConnector):
         return self.compute_client.virtual_machines.list(resource_group_name=resource_group_name)
 
     def list_virtual_machine_sizes(self, location):
-        return self.compute_client.virtual_machines_sizes.list(location=location)
+        return self.compute_client.virtual_machine_sizes.list(location=location)
 
     def list_resources(self, resource_group_name):
         return self.resource_client.resources.list_by_resource_group(resource_group_name=resource_group_name)
 
-    def list_network_interfaces(self, resource_group_name, nic_name):
-        return self.network_client.network_interfaces.get(resource_group_name, nic_name)
+    def list_network_interfaces(self, resource_group_name):
+        return self.network_client.network_interfaces.list(resource_group_name)
 
-    def list_nic_disks(self, resource_group_name, disk_name):
+    def list_nic_disks(self, resource_group_name, disk_name):  # not used yet
         return self.network_client.network_interfaces.get(resource_group_name, disk_name)
 
-    def list_disks(self, resource_group_name, disk_name):
+    def list_disk(self, resource_group_name, disk_name):
         return self.compute_client.disks.get(resource_group_name, disk_name)
+
+    def get_virtual_network(self, resource_group_name, subnet_name):
+        return self.network_client.virtual_networks.get(resource_group_name, subnet_name)
+
+    def get_public_ip_address(self, resource_group_name, public_ip_address_name):
+        return self.network_client.public_ip_addresses.get(resource_group_name, public_ip_address_name)
+
+    def list_load_balancers(self, resource_group_name):
+        return self.network_client.load_balancers.list(resource_group_name)

@@ -83,17 +83,12 @@ class AzureNICManager(BaseManager):
     def get_tags(self, nic_list, network_interface):
         tag_info = {}
         nic = self.match_nic(nic_list, network_interface)
-        # print(nic.name)
-        # print(nic.etag)
-        # print(nic.enable_accelerated_networking)
-        # print(nic.enable_ip_forwarding)
         tag_info.update({'name': self.get_nic_id(network_interface)})
         tag_info.update({'etag': nic.etag})
         tag_info.update({'enable_accelerated_networking': nic.enable_accelerated_networking})
         tag_info.update({'enable_ip_forwarding': nic.enable_ip_forwarding})
 
         return tag_info
-
 
     def match_nic(self, nic_list, network_interface):
         for nic in nic_list:

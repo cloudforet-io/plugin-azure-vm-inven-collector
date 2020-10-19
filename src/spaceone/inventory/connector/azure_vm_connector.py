@@ -86,3 +86,6 @@ class AzureVMConnector(BaseConnector):
 
     def list_load_balancers(self, resource_group_name):
         return self.network_client.load_balancers.list(resource_group_name)
+
+    def list_load_balancer_network_interfaces(self, resource_group_name, lb_name):
+        return self.network_client.load_balancer_network_interfaces.list(resource_group_name, lb_name)

@@ -63,7 +63,9 @@ class CollectorManager(BaseManager):
 
         vms = params['vms']
 
-        load_balancers = azure_vm_connector.list_load_balancers(resource_group_name)
+        load_balancers = list(azure_vm_connector.list_load_balancers(resource_group_name))
+
+        network_security_groups = list(azure_vm_connector.list_network_security_groups(resource_group_name))
 
         for vm in vms:  # each vm
             server_data = vm_manager.get_vm_info(vm, resource_group_name)
@@ -74,9 +76,17 @@ class CollectorManager(BaseManager):
             nic_vos = nic_manager.get_nic_info(vm, resource_group_name)
             server_data.update({'nics': nic_vos})
 
-            lb_vos = load_balancer_manager.get_load_balancer_info(load_balancers)
+            lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, resource_group_name)
+            server_data['data'].update({
+                'load_balancer': lb_vos
+            })
 
-            # print(server_data)
+            nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups, resource_group_name)
+            server_data['data'].update({
+                'security_group': nsg_vos
+            })
+
+            print(server_data)
 
             server_vos.append(Server(server_data, strict=False))
 

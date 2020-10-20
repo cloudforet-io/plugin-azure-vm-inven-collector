@@ -52,9 +52,12 @@ class AzureNICManager(BaseManager):
 
     def get_nic_public_ip_addresses(self, nic_list, network_interface, resource_group_name):
         conf = self.get_ip_configurations(nic_list, network_interface)
-        public_ip_name = conf[0].public_ip_address.id.split('/')[-1]
-        public_ip_address = self.azure_vm_connector.get_public_ip_address(resource_group_name, public_ip_name)
-        return public_ip_address.ip_address
+        if conf[0].public_ip_address is not None:
+            public_ip_name = conf[0].public_ip_address.id.split('/')[-1]
+            public_ip_address = self.azure_vm_connector.get_public_ip_address(resource_group_name, public_ip_name)
+            return public_ip_address.ip_address
+        else:
+            return ''
 
     def get_nic_cidr(self, nic_list, network_interface, resource_group_name):
         conf = self.get_ip_configurations(nic_list, network_interface)
@@ -83,17 +86,12 @@ class AzureNICManager(BaseManager):
     def get_tags(self, nic_list, network_interface):
         tag_info = {}
         nic = self.match_nic(nic_list, network_interface)
-        # print(nic.name)
-        # print(nic.etag)
-        # print(nic.enable_accelerated_networking)
-        # print(nic.enable_ip_forwarding)
         tag_info.update({'name': self.get_nic_id(network_interface)})
         tag_info.update({'etag': nic.etag})
         tag_info.update({'enable_accelerated_networking': nic.enable_accelerated_networking})
         tag_info.update({'enable_ip_forwarding': nic.enable_ip_forwarding})
 
         return tag_info
-
 
     def match_nic(self, nic_list, network_interface):
         for nic in nic_list:

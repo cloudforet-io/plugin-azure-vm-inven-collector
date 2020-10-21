@@ -49,7 +49,9 @@ class CollectorManager(BaseManager):
         azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
         azure_vm_connector.set_connect(params['secret_data'])
 
+        resource_group = params['resource_group']
         resource_group_name = params['resource_group'].name
+        subscription = params['secret_data'].get('subscription_id')
 
         # call all managers
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
@@ -68,22 +70,26 @@ class CollectorManager(BaseManager):
         network_security_groups = list(azure_vm_connector.list_network_security_groups(resource_group_name))
 
         for vm in vms:  # each vm
-            server_data = vm_manager.get_vm_info(vm, resource_group_name)
+            server_data = vm_manager.get_vm_info(vm, resource_group, subscription)
 
             disk_vos = disk_manager.get_disk_info(vm, resource_group_name)
-            server_data.update({'disks': disk_vos})
 
             nic_vos = nic_manager.get_nic_info(vm, resource_group_name)
-            server_data.update({'nics': nic_vos})
 
             lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, resource_group_name)
-            server_data['data'].update({
-                'load_balancer': lb_vos
-            })
 
             nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups, resource_group_name)
+
+            nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
+            vnet_vos = vnet_manager.get_vnet_subnet_info(nic_name, resource_group_name)
+
+            server_data.update({'disks': disk_vos})
+            server_data.update({'nics': nic_vos})
             server_data['data'].update({
-                'security_group': nsg_vos
+                'load_balancer': lb_vos,
+                'security_group': nsg_vos,
+                'vnet': vnet_vos['vnet_data'],
+                'subnet': vnet_vos['subnet_data']
             })
 
             print(server_data)

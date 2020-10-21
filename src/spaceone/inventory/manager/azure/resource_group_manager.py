@@ -9,7 +9,6 @@ class AzureResourceGroupManager(BaseManager):
         super().__init__(**kwargs)
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
-        # self.azure_vm_connector = azure_vm_connector
 
     def list_all_resource_groups(self):
         # azure_vm_connector = AzureVMConnector()

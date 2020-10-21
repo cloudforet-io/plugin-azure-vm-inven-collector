@@ -72,8 +72,8 @@ class AzureVMConnector(BaseConnector):
     def list_network_interfaces(self, resource_group_name):
         return self.network_client.network_interfaces.list(resource_group_name)
 
-    def list_nic_disks(self, resource_group_name, disk_name):  # not used yet
-        return self.network_client.network_interfaces.get(resource_group_name, disk_name)
+    def get_nic(self, resource_group_name, nic_name):  # not used yet
+        return self.network_client.network_interfaces.get(resource_group_name, nic_name)
 
     def list_disk(self, resource_group_name, disk_name):
         return self.compute_client.disks.get(resource_group_name, disk_name)
@@ -92,3 +92,6 @@ class AzureVMConnector(BaseConnector):
 
     def list_network_security_groups(self, resource_group_name):
         return self.network_client.network_security_groups.list(resource_group_name)
+
+    def get_subscription_info(self, subscription_id):
+        return self.subscription_client.subscriptions.get(subscription_id)

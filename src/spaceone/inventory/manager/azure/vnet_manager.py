@@ -11,17 +11,45 @@ class AzureVNetManager(BaseManager):
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
-    def get_vnet_info(self, vnet):
+    def get_vnet_subnet_info(self, nic_name, resource_group_name):
         '''
-        vnet_data = {
-
+        vnet_subnet_data = {
+            "vnet_data": vnet_data,
+            "subnet_data": subnet_data
         }
         '''
 
-        vnet_data = {}
+        network_interfaces = self.azure_vm_connector.get_nic(resource_group_name, nic_name)
+        vnet_name = network_interfaces.ip_configurations[0].subnet.id.split('/')[-3]
+        vnet = self.azure_vm_connector.get_virtual_network(resource_group_name, vnet_name)
+
+        vnet_subnet_data = {
+            'vnet_data': self.get_vnet_info(vnet),
+            'subnet_data': self.get_subnet_info(vnet.subnets[0])
+        }
+
+        return vnet_subnet_data
+
+    @staticmethod
+    def get_vnet_info(vnet):
+        '''
+        vnet_data = {
+            "vnet_id" = "",
+            "vnet_name" = "",
+            "cidr" = ""
+        }
+        '''
+
+        vnet_data = {
+            'vnet_id': vnet.id,
+            'vnet_name': vnet.name,
+            'cidr': vnet.address_space.address_prefixes[0]
+        }
+
         return VNet(vnet_data, strict=False)
 
-    def get_subnet_info(self, subnet):
+    @staticmethod
+    def get_subnet_info(subnet):
         '''
         subnet_data = {
             "subnet_name": "",
@@ -30,5 +58,10 @@ class AzureVNetManager(BaseManager):
         }
         '''
 
-        subnet_data = {}
+        subnet_data = {
+            'subnet_name': subnet.name,
+            'subnet_id': subnet.id,
+            'cidr': subnet.address_prefix
+        }
+
         return Subnet(subnet_data, strict=False)

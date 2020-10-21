@@ -3,9 +3,12 @@ from spaceone.inventory.model.compute import Compute
 from spaceone.inventory.model.azure import Azure
 from spaceone.inventory.model.os import OS
 from spaceone.inventory.model.hardware import Hardware
+from spaceone.inventory.model.subscription import Subscription
+from spaceone.inventory.model.resource_group import ResourceGroup
 from spaceone.inventory.connector.azure_vm_connector import AzureVMConnector
 
 import pprint
+
 
 class AzureVmManager(BaseManager):
 
@@ -17,7 +20,7 @@ class AzureVmManager(BaseManager):
     def list_vms(self, resource_group_name):
         return self.azure_vm_connector.list_vms(resource_group_name)
 
-    def get_vm_info(self, vm, resource_group_name):
+    def get_vm_info(self, vm, resource_group, subscription):
         '''
         server_data = {
             "os_type": "LINUX" | "WINDOWS"
@@ -70,20 +73,28 @@ class AzureVmManager(BaseManager):
         }
         '''
 
+        resource_group_name = resource_group.name
+        subscription_info = self.azure_vm_connector.get_subscription_info(subscription)
+
         vm_dic = self.get_vm_dic(vm)
         os_data = self.get_os_data(vm.storage_profile)
         hardware_data = self.get_hardware_data(vm)
         azure_data = self.get_azure_data(vm)
         compute_data = self.get_compute_data(vm, resource_group_name)
+        resource_group_data = self.get_resource_group_data(resource_group)
+        subscription_data = self.get_subscription_data(subscription_info)
 
         vm_dic.update({
             'data': {
                 'os': os_data,
                 'hardware': hardware_data,
                 'azure': azure_data,
-                'compute': compute_data
+                'compute': compute_data,
+                'resource_group': resource_group_data,
+                'subscription': subscription_data
             }
         })
+
         # pprint.pprint(vm_dic)
 
         return vm_dic
@@ -165,6 +176,23 @@ class AzureVmManager(BaseManager):
                     security_groups.append(nic_name)
 
         return security_groups
+
+    @staticmethod
+    def get_subscription_data(subscription_info):
+        subscription_data = {
+            'subscription_id': subscription_info.subscription_id,
+            'subscription_name': subscription_info.display_name,
+            'tenant_id': subscription_info.tenant_id
+        }
+        return Subscription(subscription_data, strict=False)
+
+    @staticmethod
+    def get_resource_group_data(resource_group):
+        resource_group_data = {
+            'resource_group_name': resource_group.name,
+            'resource_group_id': resource_group.id
+        }
+        return ResourceGroup(resource_group_data, strict=False)
 
     @staticmethod
     def get_instance_state(instance_view):

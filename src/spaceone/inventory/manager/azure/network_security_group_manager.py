@@ -34,7 +34,9 @@ class AzureNetworkSecurityGroupManager(BaseManager):
 
         network_security_groups_data = []
         network_interfaces = vm.network_profile.network_interfaces
-        match_network_security_groups = self.get_network_security_group_from_nic(network_interfaces, resource_group_name, network_security_groups)
+        match_network_security_groups = self.get_network_security_group_from_nic(network_interfaces,
+                                                                                 resource_group_name,
+                                                                                 network_security_groups)
 
         for network_security_group in match_network_security_groups:
 
@@ -59,6 +61,8 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         for nic in network_interfaces:
             nic_name = nic.id.split('/')[-1]
             nics = self.azure_vm_connector.list_network_interfaces(resource_group_name)
+
+            # TODO: nic 변수명 중복으로 버그 날 것 같음
             for nic in nics:
                 if nic_name == nic.name:
                     nsg_name = nic.network_security_group.id.split('/')[-1]

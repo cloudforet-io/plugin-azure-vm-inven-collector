@@ -1,3 +1,5 @@
+import pprint
+
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.model.compute import Compute
 from spaceone.inventory.model.azure import Azure
@@ -6,8 +8,6 @@ from spaceone.inventory.model.hardware import Hardware
 from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.resource_group import ResourceGroup
 from spaceone.inventory.connector.azure_vm_connector import AzureVMConnector
-
-import pprint
 
 
 class AzureVmManager(BaseManager):
@@ -108,9 +108,11 @@ class AzureVmManager(BaseManager):
         return vm_data
 
     def get_os_data(self, vm_storage_profile):
+        # TODO: os_distro 가공처리필요(ex. UbuntuServer -> ubuntu)
+        # TODO: image 가 custom image 일때 os_distro 가 잘 나오는지..
+
         os_data = {
             'os_distro': self.get_os_distro(vm_storage_profile.image_reference.offer),
-            'os_arch': '',
             'os_details': self.get_os_details(vm_storage_profile.image_reference)
         }
         return OS(os_data, strict=False)
@@ -125,18 +127,24 @@ class AzureVmManager(BaseManager):
 
     def get_compute_data(self, vm, resource_group_name):
         compute_data = {
+            # TODO: AZ 가 존재하는 친구들 찾을 수 있는 방법 알아보기
             'az': vm.location,
+            # TODO: state 값을 찾아라
             'instance_state': self.get_instance_state(vm.instance_view),
             'instance_type': vm.hardware_profile.vm_size,
+            # TODO: disk 를 list 로 가져오시면 좋겠숩니다.
             'launched_at': self.get_launched_time(vm.storage_profile.os_disk.managed_disk.id, resource_group_name),
             'instance_id': vm.vm_id,
             'instance_name': vm.name,
+            # TODO: Logic 점검이 필요합니다.
             'security_groups': self.get_security_groups(vm.network_profile.network_interfaces, resource_group_name),
+            # TODO: image_id 와 같은 identifier 를 찾아라
             'image': self.get_os_details(vm.storage_profile.image_reference),
             'tags': {
                 'id': vm.id
             }
         }
+
         return Compute(compute_data, strict=False)
 
     def get_azure_data(self, vm):
@@ -151,11 +159,15 @@ class AzureVmManager(BaseManager):
 
     def get_vm_hardware_info(self, location, size):
         result = {}
+        # TODO: API 콜 최적화를 위해 중복 call은 피해주세요.
         vm_sizes = self.azure_vm_connector.list_virtual_machine_sizes(location)
         for vm_size in vm_sizes:
             if vm_size.name == size:
-                result.update({'core': vm_size.number_of_cores})
-                result.update({'memory': round(float(vm_size.memory_in_mb/1074), 2)})
+                result.update({
+                    'core': vm_size.number_of_cores,
+                    'memory': round(float(vm_size.memory_in_mb / 1074), 2)
+                })
+                break
 
         return result
 
@@ -174,7 +186,6 @@ class AzureVmManager(BaseManager):
             for list_n in list_nic:
                 if list_n.name == nic_name:
                     security_groups.append(nic_name)
-
         return security_groups
 
     @staticmethod
@@ -196,14 +207,14 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_instance_state(instance_view):
-        if instance_view is not None:
+        if instance_view:
             return instance_view.statuses.display_statues
         else:
             return ''
 
     @staticmethod
     def get_ultra_ssd_enabled(additional_capabilities):
-        if additional_capabilities is not None:
+        if additional_capabilities:
             return additional_capabilities.ultra_ssd_enabled
         else:
             return False
@@ -224,7 +235,8 @@ class AzureVmManager(BaseManager):
         publisher = image_reference.publisher
         offer = image_reference.offer
         sku = image_reference.sku
-        os_details = publisher + ', ' + offer + ', ' + sku
+        os_details = f'{publisher}, {offer}, {sku}'
+
         return os_details
 
     @staticmethod
@@ -235,7 +247,7 @@ class AzureVmManager(BaseManager):
     @staticmethod
     def get_tags(tags):
         tags_result = []
-        if tags is not None:
+        if tags:
             for k, v in tags.items():
                 tag_info = {}
                 tag_info.update({'key': k})

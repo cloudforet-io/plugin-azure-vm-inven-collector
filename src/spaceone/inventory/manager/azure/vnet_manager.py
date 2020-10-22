@@ -23,12 +23,7 @@ class AzureVNetManager(BaseManager):
         vnet_name = network_interfaces.ip_configurations[0].subnet.id.split('/')[-3]
         vnet = self.azure_vm_connector.get_virtual_network(resource_group_name, vnet_name)
 
-        vnet_subnet_data = {
-            'vnet_data': self.get_vnet_info(vnet),
-            'subnet_data': self.get_subnet_info(vnet.subnets[0])
-        }
-
-        return vnet_subnet_data
+        return self.get_vnet_info(vnet), self.get_subnet_info(vnet.subnets[0])
 
     @staticmethod
     def get_vnet_info(vnet):

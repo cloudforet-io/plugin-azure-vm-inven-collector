@@ -42,7 +42,14 @@ class CollectorManager(BaseManager):
         azure_vm_connector.set_connect(params['secret_data'])
 
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
-        return vm_manager.list_vms(resource_group_name)
+        vms = vm_manager.list_vms(resource_group_name)
+
+        region_name = params.get('secret_data')
+
+        if region_name:
+            return [vm for vm in vms if vm.location == region_name]
+
+        return vms
 
     def list_all_resources(self, params):  # just one mt_param is given! several vms in params
         server_vos = []  # list of vm instances info. each instance in console
@@ -56,8 +63,13 @@ class CollectorManager(BaseManager):
         # call all managers
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
         disk_manager: AzureDiskManager = AzureDiskManager(params, azure_vm_connector=azure_vm_connector)
-        load_balancer_manager: AzureLoadBalancerManager = AzureLoadBalancerManager(params, azure_vm_connector=azure_vm_connector)
-        network_security_group_manager: AzureNetworkSecurityGroupManager = AzureNetworkSecurityGroupManager(params, azure_vm_connector=azure_vm_connector)
+
+        load_balancer_manager: AzureLoadBalancerManager = \
+            AzureLoadBalancerManager(params, azure_vm_connector=azure_vm_connector)
+
+        network_security_group_manager: AzureNetworkSecurityGroupManager = \
+            AzureNetworkSecurityGroupManager(params, azure_vm_connector=azure_vm_connector)
+
         nic_manager: AzureNICManager = AzureNICManager(params, azure_vm_connector=azure_vm_connector)
         resource_group_manager: AzureResourceGroupManager(params, azure_vm_connector=azure_vm_connector)
         vmss_manager: AzureVMScaleSetManager = AzureVMScaleSetManager(params, azure_vm_connector=azure_vm_connector)
@@ -78,18 +90,19 @@ class CollectorManager(BaseManager):
 
             lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, resource_group_name)
 
-            nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups, resource_group_name)
+            nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups,
+                                                                                     resource_group_name)
 
             nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
-            vnet_vos = vnet_manager.get_vnet_subnet_info(nic_name, resource_group_name)
+            vnet_data, subnet_data = vnet_manager.get_vnet_subnet_info(nic_name, resource_group_name)
 
             server_data.update({'disks': disk_vos})
             server_data.update({'nics': nic_vos})
             server_data['data'].update({
                 'load_balancer': lb_vos,
                 'security_group': nsg_vos,
-                'vnet': vnet_vos['vnet_data'],
-                'subnet': vnet_vos['subnet_data']
+                'vnet': vnet_data,
+                'subnet': subnet_data
             })
 
             print(server_data)

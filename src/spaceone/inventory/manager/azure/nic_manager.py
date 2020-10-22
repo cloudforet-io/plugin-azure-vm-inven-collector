@@ -52,7 +52,8 @@ class AzureNICManager(BaseManager):
 
     def get_nic_public_ip_addresses(self, nic_list, network_interface, resource_group_name):
         conf = self.get_ip_configurations(nic_list, network_interface)
-        if conf[0].public_ip_address is not None:
+
+        if conf and conf[0].public_ip_address:
             public_ip_name = conf[0].public_ip_address.id.split('/')[-1]
             public_ip_address = self.azure_vm_connector.get_public_ip_address(resource_group_name, public_ip_name)
             return public_ip_address.ip_address
@@ -61,18 +62,25 @@ class AzureNICManager(BaseManager):
 
     def get_nic_cidr(self, nic_list, network_interface, resource_group_name):
         conf = self.get_ip_configurations(nic_list, network_interface)
-        subnet_name = conf[0].subnet.id.split('/')[-3]
-        subnet = self.azure_vm_connector.get_virtual_network(resource_group_name, subnet_name)
-        if subnet.subnets:
-            return subnet.subnets[0].address_prefix
+
+        if conf:
+            subnet_name = conf[0].subnet.id.split('/')[-3]
+            subnet = self.azure_vm_connector.get_virtual_network(resource_group_name, subnet_name)
+            if subnet.subnets:
+                return subnet.subnets[0].address_prefix
 
     def get_nic_mac_address(self, nic_list, network_interface):
         nic = self.match_nic(nic_list, network_interface)
-        return nic.mac_address
+
+        if nic:
+            return nic.mac_address
+        else:
+            return ''
 
     def get_nic_ip_addresses(self, nic_list, network_interface):
         ip_addresses = []
         confs = self.get_ip_configurations(nic_list, network_interface)
+
         for conf in confs:
             ip_addresses.append(conf.private_ip_address)
 
@@ -80,8 +88,11 @@ class AzureNICManager(BaseManager):
 
     def get_ip_configurations(self, nic_list, network_interface):
         nic = self.match_nic(nic_list, network_interface)
-        if nic.ip_configurations is not None:
+
+        if nic and nic.ip_configurations:
             return nic.ip_configurations
+
+        return []
 
     def get_tags(self, nic_list, network_interface):
         tag_info = {}
@@ -97,6 +108,9 @@ class AzureNICManager(BaseManager):
         for nic in nic_list:
             if nic.name == self.get_nic_id(network_interface):
                 return nic
+
+        return False
+        # TODO: Return 값 처리 추가해주세요. match 못 찾았을때요.
 
     @staticmethod
     def get_nic_id(network_interface):

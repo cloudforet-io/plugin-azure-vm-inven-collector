@@ -13,7 +13,7 @@ class AzureLoadBalancerManager(BaseManager):
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
     def get_load_balancer_info(self, vm, load_balancers, resource_group_name):
-        '''
+        """
         lb_data = {
             "type" = "application" | "network",
             "endpoint" = "",
@@ -25,7 +25,7 @@ class AzureLoadBalancerManager(BaseManager):
                 "lb_id" = ""
             }
         }
-        '''
+        """
 
         lb_data = []
 
@@ -54,21 +54,13 @@ class AzureLoadBalancerManager(BaseManager):
 
         for lb in load_balancers:
             lb_name = lb.name
+            # TODO: 탐색 구조 수정 (중복 call 제거)
             lb_nics = self.azure_vm_connector.list_load_balancer_network_interfaces(resource_group_name, lb_name)
             for lb_nic in lb_nics:
                 if lb_nic.virtual_machine.id.split('/')[-1] == vm.name:
                     match_load_balancers.append(lb)
 
         return match_load_balancers
-
-    @staticmethod
-    def get_lb_scheme(match_load_balancer):
-        frontend_ip_configurations = match_load_balancer.frontend_ip_configurations
-        for fe_ip_conf in frontend_ip_configurations:
-            if fe_ip_conf.public_ip_address is not None:
-                return 'internet-facing'
-            else:
-                return 'internal'
 
     def get_lb_endpoint(self, match_load_balancer, resource_group_name):
         frontend_ip_configurations = match_load_balancer.frontend_ip_configurations
@@ -83,10 +75,19 @@ class AzureLoadBalancerManager(BaseManager):
                 return ip.private_ip_address
 
     @staticmethod
+    def get_lb_scheme(match_load_balancer):
+        frontend_ip_configurations = match_load_balancer.frontend_ip_configurations
+        for fe_ip_conf in frontend_ip_configurations:
+            if fe_ip_conf.public_ip_address:
+                return 'internet-facing'
+            else:
+                return 'internal'
+
+    @staticmethod
     def get_lb_port(match_load_balancer):
         ports = []
         lb_rules = match_load_balancer.load_balancing_rules
-        if lb_rules is not None:
+        if lb_rules:
             for lbr in lb_rules:
                 ports.append(lbr.frontend_port)
 
@@ -96,7 +97,7 @@ class AzureLoadBalancerManager(BaseManager):
     def get_lb_protocol(match_load_balancer):
         protocols = []
         lb_rules = match_load_balancer.load_balancing_rules
-        if lb_rules is not None:
+        if lb_rules:
             for lbr in lb_rules:
                 protocols.append(lbr.protocol)
 

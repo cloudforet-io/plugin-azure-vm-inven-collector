@@ -48,13 +48,17 @@ class AzureDiskManager(BaseManager):
         }
 
         disk = self.get_iops_bps(os_disk, resource_group_name)
-        volume_data['tags'].update({'iops': disk.disk_iops_read_write})
-        volume_data['tags'].update({'throughput_mbps': disk.disk_m_bps_read_write})
+
+        volume_data['tags'].update({
+            'iops': disk.disk_iops_read_write,
+            'throughput_mbps': disk.disk_m_bps_read_write
+        })
 
         disk_data.append(Disk(volume_data, strict=False))
         index += 1
 
         data_disks = vm.storage_profile.data_disks
+
         if data_disks:
             for data_disk in data_disks:
                 volume_data_sub = {

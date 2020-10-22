@@ -15,6 +15,6 @@ class NIC(Model):
     nic_type = StringType()
     ip_addresses = ListType(StringType())
     cidr = StringType()
-    mac_address = StringType()
+    mac_address = StringType(default="")
     public_ip_address = StringType()
     tags = ModelType(NICTags, default={})

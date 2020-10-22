@@ -128,7 +128,7 @@ class CollectorService(BaseService):
 
         mt_params = []
         for rg in resource_groups:
-            vms = self.collector_manager.list_vms(rg.name)
+            vms = self.collector_manager.list_vms(params, rg.name)
 
             if list(vms):
                 mt_params.append({

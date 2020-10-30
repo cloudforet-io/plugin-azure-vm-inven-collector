@@ -12,7 +12,7 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
-    def get_network_security_group_info(self, vm, network_security_groups, resource_group_name):
+    def get_network_security_group_info(self, vm, network_security_groups, network_interfaces):
         '''
         nsg_data = {
             "protocol" = "",
@@ -33,53 +33,35 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         nsg_data = []
 
         network_security_groups_data = []
-        network_interfaces = vm.network_profile.network_interfaces
-        match_network_security_groups = self.get_network_security_group_from_nic(network_interfaces,
-                                                                                 resource_group_name,
+        vm_network_interfaces = vm.network_profile.network_interfaces
+        match_network_security_groups = self.get_network_security_group_from_nic(vm_network_interfaces,
+                                                                                 network_interfaces,
                                                                                  network_security_groups)
-
         for network_security_group in match_network_security_groups:
+            sg_id = network_security_group.id
 
             security_rules = network_security_group.security_rules
-            sg_id = network_security_group.id
             security_data = self.get_nsg_security_rules(security_rules, sg_id)
             network_security_groups_data.extend(security_data)
 
             default_security_rules = network_security_group.default_security_rules
-            default_security_data = self.get_nsg_default_security_rules(default_security_rules, sg_id)
+            default_security_data = self.get_nsg_security_rules(default_security_rules, sg_id)
             network_security_groups_data.extend(default_security_data)
+
+        # pprint.pprint(network_security_groups_data)
 
         for nsg in network_security_groups_data:
             nsg_data.append(SecurityGroup(nsg, strict=False))
 
-        # pprint.pprint(nsg_data)
-
         return nsg_data
-
-    def get_network_security_group_from_nic(self, network_interfaces, resource_group_name, network_security_groups):
-        nsgs = []
-        for nic in network_interfaces:
-            nic_name = nic.id.split('/')[-1]
-            nics = self.azure_vm_connector.list_network_interfaces(resource_group_name)
-
-            # TODO: nic 변수명 중복으로 버그 날 것 같음
-            for nic in nics:
-                if nic_name == nic.name:
-                    nsg_name = nic.network_security_group.id.split('/')[-1]
-                    for nsg in network_security_groups:
-                        if nsg.name == nsg_name:
-                            nsgs.append(nsg)
-
-        return nsgs
 
     def get_nsg_security_rules(self, security_rules, sg_id):
         result = []
         for s_rule in security_rules:
-            # print(s_rule)
             security_rule_data = {
                 'protocol': s_rule.protocol,
                 'remote_id': s_rule.id,
-                'security_group_name': s_rule.name,
+                'security_group_name': s_rule.id.split('/')[-3],
                 'description': s_rule.description,
                 'direction': s_rule.direction.lower(),
                 'priority': s_rule.priority,
@@ -88,7 +70,6 @@ class AzureNetworkSecurityGroupManager(BaseManager):
 
             remote_data = self.get_nsg_remote(s_rule)
             security_rule_data.update(remote_data)
-
             port_data = self.get_nsg_port(s_rule)
             security_rule_data.update(port_data)
 
@@ -96,29 +77,22 @@ class AzureNetworkSecurityGroupManager(BaseManager):
 
         return result
 
-    def get_nsg_default_security_rules(self, default_security_rules, sg_id):
-        result = []
-        for s_rule in default_security_rules:
-            # print(s_rule)
-            default_security_rule_data = {
-                'protocol': s_rule.protocol,
-                'remote_id': s_rule.id,
-                'security_group_name': s_rule.name,
-                'description': s_rule.description,
-                'direction': s_rule.direction.lower(),
-                'priority': s_rule.priority,
-                'security_group_id': sg_id
-            }
+    @staticmethod
+    def get_network_security_group_from_nic(vm_network_interfaces, network_interfaces,
+                                            network_security_groups):
+        nsgs = []
+        for vm_nic in vm_network_interfaces:
+            vm_nic_name = vm_nic.id.split('/')[-1]
+            for nic in network_interfaces:
+                if vm_nic_name == nic.name:
+                    nsg_name = nic.network_security_group.id.split('/')[-1]
+                    for nsg in network_security_groups:
+                        if nsg.name == nsg_name:
+                            nsgs.append(nsg)
+                            break
+                    break
 
-            remote_data = self.get_nsg_remote(s_rule)
-            default_security_rule_data.update(remote_data)
-
-            port_data = self.get_nsg_port(s_rule)
-            default_security_rule_data.update(port_data)
-
-            result.append(default_security_rule_data)
-
-        return result
+        return nsgs
 
     @staticmethod
     def get_nsg_remote(s_rule):
@@ -153,13 +127,15 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                 'remote_cidr': remote
             })
 
-        return remote_result
+        if len(remote_result) > 0:
+            return remote_result
+
+        return None
 
     @staticmethod
     def get_nsg_port(s_rule):
         port_result = {}
         if s_rule.destination_port_range is not None:
-            # print(s_rule.destination_port_range)
             if '-' in s_rule.destination_port_range:
                 port_min = s_rule.destination_port_range.split('-')[0]
                 port_max = s_rule.destination_port_range.split('-')[1]
@@ -202,4 +178,7 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                 'port': all_port
             })
 
-        return port_result
+        if len(port_result) > 0:
+            return port_result
+
+        return None

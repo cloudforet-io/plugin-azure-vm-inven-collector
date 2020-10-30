@@ -12,7 +12,7 @@ class AzureDiskManager(BaseManager):
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
-    def get_disk_info(self, vm, resource_group_name):
+    def get_disk_info(self, vm, list_disks):
         '''
         disk_data = {
             "device_index": 0,
@@ -34,58 +34,53 @@ class AzureDiskManager(BaseManager):
         index = 0
 
         os_disk = vm.storage_profile.os_disk
-
-        volume_data = {
-            'device_index': index,
-            'disk_type': 'os_disk',
-            'size': os_disk.disk_size_gb,
-            'tags': {
-                'disk_name': os_disk.name,
-                'caching': os_disk.caching,
-                'storage_account_type': os_disk.managed_disk.storage_account_type,
-                'disk_encryption_set': self.get_disk_encryption(os_disk),
-             }
-        }
-
-        disk = self.get_iops_bps(os_disk, resource_group_name)
-
-        volume_data['tags'].update({
-            'iops': disk.disk_iops_read_write,
-            'throughput_mbps': disk.disk_m_bps_read_write
+        volume_data = self.get_volume_data(os_disk, list_disks, index)
+        volume_data.update({
+            'disk_type': 'os_disk'
         })
-
         disk_data.append(Disk(volume_data, strict=False))
         index += 1
 
         data_disks = vm.storage_profile.data_disks
-
         if data_disks:
             for data_disk in data_disks:
-                volume_data_sub = {
-                    'device_index': index,
-                    'disk_type': 'data_disk',
-                    'size': data_disk.disk_size_gb,
-                    'tags': {
-                        'disk_name': data_disk.name,
-                        'caching': data_disk.caching,
-                        'storage_account_type': data_disk.managed_disk.storage_account_type,
-                        'disk_encryption_set': self.get_disk_encryption(data_disk),
-                    }
-                }
-
-                disk_sub = self.get_iops_bps(data_disk, resource_group_name)
-                volume_data_sub['tags'].update({'iops': disk_sub.disk_iops_read_write})
-                volume_data_sub['tags'].update({'throughput_mbps': disk_sub.disk_m_bps_read_write})
-
+                volume_data_sub = self.get_volume_data(data_disk, list_disks, index)
+                volume_data_sub.update({
+                    'disk_type': 'data_disk'
+                })
                 disk_data.append(Disk(volume_data_sub, strict=False))
                 index += 1
 
         return disk_data
 
-    def get_iops_bps(self, disk, resource_group_name):
+    def get_volume_data(self, disk, list_disks, index):
+        volume_data = {
+            'device_index': index,
+            'size': disk.disk_size_gb,
+            'tags': {
+                'disk_name': disk.name,
+                'caching': disk.caching,
+                'storage_account_type': disk.managed_disk.storage_account_type,
+                'disk_encryption_set': self.get_disk_encryption(disk),
+            }
+        }
+        disk = self.get_iops_bps(disk, list_disks)
+        if disk:
+            volume_data['tags'].update({
+                'iops': disk.disk_iops_read_write,
+                'throughput_mbps': disk.disk_m_bps_read_write
+            })
+
+        return volume_data
+
+    @staticmethod
+    def get_iops_bps(disk, list_disks):
         disk_name = disk.managed_disk.id.split('/')[-1]
-        disk = self.azure_vm_connector.list_disk(resource_group_name, disk_name)
-        return disk
+        for disk_info in list_disks:
+            if disk_info.name == disk_name:
+                return disk_info
+
+        return None
 
     @staticmethod
     def get_disk_encryption(disk):

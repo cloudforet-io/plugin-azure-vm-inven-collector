@@ -11,7 +11,6 @@ class AzureResourceGroupManager(BaseManager):
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
     def list_all_resource_groups(self):
-        # azure_vm_connector = AzureVMConnector()
         return self.azure_vm_connector.list_resource_groups()
 
     @staticmethod

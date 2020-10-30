@@ -11,6 +11,7 @@ from spaceone.inventory.manager.azure import AzureDiskManager, AzureLoadBalancer
 from spaceone.inventory.manager.metadata.metadata_manager import MetadataManager
 from spaceone.inventory.model.server import Server, ReferenceModel
 from spaceone.inventory.model.region import Region
+from spaceone.inventory.model.subscription import Subscription
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,16 +44,15 @@ class CollectorManager(BaseManager):
 
         vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
         vms = vm_manager.list_vms(resource_group_name)
-
-        region_name = params.get('secret_data')
+        region_name = params['secret_data'].get('region_name')
 
         if region_name:
             return [vm for vm in vms if vm.location == region_name]
 
         return vms
 
-    def list_all_resources(self, params):  # just one mt_param is given! several vms in params
-        server_vos = []  # list of vm instances info. each instance in console
+    def list_all_resources(self, params):
+        server_vos = []
         azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
         azure_vm_connector.set_connect(params['secret_data'])
 
@@ -78,31 +78,47 @@ class CollectorManager(BaseManager):
         vms = params['vms']
 
         load_balancers = list(azure_vm_connector.list_load_balancers(resource_group_name))
-
         network_security_groups = list(azure_vm_connector.list_network_security_groups(resource_group_name))
+        network_interfaces = list(azure_vm_connector.list_network_interfaces(resource_group_name))
+        list_disks = list(azure_vm_connector.list_disk())
+        public_ip_addresses = list(azure_vm_connector.list_public_ip_address(resource_group_name))
+        virtual_networks = list(azure_vm_connector.list_virtual_network(resource_group_name))
 
-        for vm in vms:  # each vm
-            server_data = vm_manager.get_vm_info(vm, resource_group, subscription)
+        subscription_info = azure_vm_connector.get_subscription_info(subscription)
+        subscription_data = {
+            'subscription_id': subscription_info.subscription_id,
+            'subscription_name': subscription_info.display_name,
+            'tenant_id': subscription_info.tenant_id
+        }
 
-            disk_vos = disk_manager.get_disk_info(vm, resource_group_name)
+        vm_sizes = []
 
-            nic_vos = nic_manager.get_nic_info(vm, resource_group_name)
+        for vm in vms:
+            server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups, vm_sizes)
 
-            lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, resource_group_name)
+            disk_vos = disk_manager.get_disk_info(vm, list_disks)
+
+            nic_vos = nic_manager.get_nic_info(vm, network_interfaces, public_ip_addresses, virtual_networks)
+
+            lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
 
             nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups,
-                                                                                     resource_group_name)
+                                                                                     network_interfaces)
 
             nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
-            vnet_data, subnet_data = vnet_manager.get_vnet_subnet_info(nic_name, resource_group_name)
+            vnet_data, subnet_data = vnet_manager.get_vnet_subnet_info(nic_name, network_interfaces, virtual_networks)
 
-            server_data.update({'disks': disk_vos})
-            server_data.update({'nics': nic_vos})
+            server_data.update({
+                'disks': disk_vos,
+                'nics': nic_vos
+            })
+
             server_data['data'].update({
                 'load_balancer': lb_vos,
                 'security_group': nsg_vos,
                 'vnet': vnet_data,
-                'subnet': subnet_data
+                'subnet': subnet_data,
+                'subscription': Subscription(subscription_data, strict=False)
             })
 
             print(server_data)

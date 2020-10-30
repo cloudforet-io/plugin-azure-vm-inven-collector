@@ -20,7 +20,7 @@ class AzureVmManager(BaseManager):
     def list_vms(self, resource_group_name):
         return self.azure_vm_connector.list_vms(resource_group_name)
 
-    def get_vm_info(self, vm, resource_group, subscription):
+    def get_vm_info(self, vm, resource_group, subscription, network_security_groups, vm_sizes):
         '''
         server_data = {
             "os_type": "LINUX" | "WINDOWS"
@@ -74,15 +74,14 @@ class AzureVmManager(BaseManager):
         '''
 
         resource_group_name = resource_group.name
-        subscription_info = self.azure_vm_connector.get_subscription_info(subscription)
 
         vm_dic = self.get_vm_dic(vm)
         os_data = self.get_os_data(vm.storage_profile)
-        hardware_data = self.get_hardware_data(vm)
+        hardware_data = self.get_hardware_data(vm, vm_sizes)
         azure_data = self.get_azure_data(vm)
-        compute_data = self.get_compute_data(vm, resource_group_name)
+        compute_data = self.get_compute_data(vm, resource_group_name, network_security_groups,
+                                             subscription)
         resource_group_data = self.get_resource_group_data(resource_group)
-        subscription_data = self.get_subscription_data(subscription_info)
 
         vm_dic.update({
             'data': {
@@ -91,11 +90,8 @@ class AzureVmManager(BaseManager):
                 'azure': azure_data,
                 'compute': compute_data,
                 'resource_group': resource_group_data,
-                'subscription': subscription_data
             }
         })
-
-        # pprint.pprint(vm_dic)
 
         return vm_dic
 
@@ -108,42 +104,68 @@ class AzureVmManager(BaseManager):
         return vm_data
 
     def get_os_data(self, vm_storage_profile):
-        # TODO: os_distro 가공처리필요(ex. UbuntuServer -> ubuntu)
-        # TODO: image 가 custom image 일때 os_distro 가 잘 나오는지..
-
         os_data = {
-            'os_distro': self.get_os_distro(vm_storage_profile.image_reference.offer),
+            'os_distro': self.get_os_distro(self.get_os_type(vm_storage_profile.os_disk),
+                                            vm_storage_profile.image_reference.offer),
             'os_details': self.get_os_details(vm_storage_profile.image_reference)
         }
         return OS(os_data, strict=False)
 
-    def get_hardware_data(self, vm):
+    def get_hardware_data(self, vm, vm_sizes):
+        """
+        vm_sizes = [
+            {
+                'location': 'koreacentral',
+                'list_sizes': []
+            },
+        ]
+        """
+        # caching location info by vm_sizes
         location = vm.location
         size = vm.hardware_profile.vm_size
 
-        hardware_data = self.get_vm_hardware_info(location, size)
+        if vm_sizes:
+            for vm_size in vm_sizes:
+                if vm_size.get('location') == location:
+                    hardware_data = self.get_vm_hardware_info(vm_size.get('list_sizes'), size)
+                    return Hardware(hardware_data, strict=False)
+
+        new_vm_size = {}
+        new_vm_size.update({
+            'location': location,
+            'list_sizes': list(self.azure_vm_connector.list_virtual_machine_sizes(location))
+        })
+
+        vm_sizes.append(new_vm_size)
+        hardware_data = self.get_vm_hardware_info(new_vm_size.get('list_sizes'), size)
 
         return Hardware(hardware_data, strict=False)
 
-    def get_compute_data(self, vm, resource_group_name):
+    def get_compute_data(self, vm, resource_group_name, network_security_groups, subscription_id):
+        vm_info = self.azure_vm_connector.get_vm(resource_group_name, vm.name)
         compute_data = {
-            # TODO: AZ 가 존재하는 친구들 찾을 수 있는 방법 알아보기
-            'az': vm.location,
-            # TODO: state 값을 찾아라
-            'instance_state': self.get_instance_state(vm.instance_view),
+            'instance_state': self.get_instance_state(vm_info.instance_view.statuses),
             'instance_type': vm.hardware_profile.vm_size,
-            # TODO: disk 를 list 로 가져오시면 좋겠숩니다.
-            'launched_at': self.get_launched_time(vm.storage_profile.os_disk.managed_disk.id, resource_group_name),
+            'launched_at': self.get_launched_time(vm_info.instance_view.statuses),
             'instance_id': vm.vm_id,
             'instance_name': vm.name,
-            # TODO: Logic 점검이 필요합니다.
-            'security_groups': self.get_security_groups(vm.network_profile.network_interfaces, resource_group_name),
-            # TODO: image_id 와 같은 identifier 를 찾아라
-            'image': self.get_os_details(vm.storage_profile.image_reference),
+            'security_groups': self.get_security_groups(vm.network_profile.network_interfaces, network_security_groups),
+            'image': self.get_image_detail(vm.location, vm.storage_profile.image_reference, subscription_id),
             'tags': {
                 'id': vm.id
             }
         }
+        if vm.zones:
+            compute_data.update({
+                'az': f'{vm.location}-{vm.zones[0]}'
+            })
+
+        else:
+            compute_data.update({
+                'az': vm.location
+            })
+
+        # pprint.pprint(compute_data)
 
         return Compute(compute_data, strict=False)
 
@@ -157,45 +179,69 @@ class AzureVmManager(BaseManager):
         }
         return Azure(azure_data, strict=False)
 
-    def get_vm_hardware_info(self, location, size):
+    def get_vm_size(self, location):
+        return self.azure_vm_connector.list_virtual_machine_sizes(location)
+
+    def get_os_distro(self, os_type, offer):
+        if offer:
+            return self.extract_os_distro(os_type, offer.lower())
+        else:
+            return os_type.lower()
+
+    @staticmethod
+    def get_vm_hardware_info(list_sizes, size):
         result = {}
-        # TODO: API 콜 최적화를 위해 중복 call은 피해주세요.
-        vm_sizes = self.azure_vm_connector.list_virtual_machine_sizes(location)
-        for vm_size in vm_sizes:
-            if vm_size.name == size:
+        for list_size in list_sizes:
+            if list_size.name == size:
                 result.update({
-                    'core': vm_size.number_of_cores,
-                    'memory': round(float(vm_size.memory_in_mb / 1074), 2)
+                    'core': list_size.number_of_cores,
+                    'memory': round(float(list_size.memory_in_mb / 1074), 2)
                 })
                 break
 
         return result
 
-    def get_launched_time(self, managed_disk_id, resource_group_name):
-        disk_name_arr = managed_disk_id.split('/')
-        disk_name = disk_name_arr[-1]
-        disk_info = self.azure_vm_connector.list_disk(resource_group_name, disk_name)
-        return disk_info.time_created
-
-    def get_security_groups(self, network_interfaces, resource_group_name):
+    @staticmethod
+    def get_security_groups(vm_network_interfaces, network_security_groups):
         security_groups = []
-        for nic in network_interfaces:
-            id_arr = nic.id.split('/')
-            nic_name = id_arr[-1]
-            list_nic = self.azure_vm_connector.list_network_interfaces(resource_group_name)
-            for list_n in list_nic:
-                if list_n.name == nic_name:
-                    security_groups.append(nic_name)
-        return security_groups
+        nic_names = []
+        for vm_nic in vm_network_interfaces:
+            nic_name = vm_nic.id.split('/')[-1]
+            nic_names.append(nic_name)
+
+        for nsg in network_security_groups:
+            network_interfaces = nsg.network_interfaces
+            if network_interfaces:
+                for nic in network_interfaces:
+                    nic_name2 = nic.id.split('/')[-1]
+                    for nic_name in nic_names:
+                        if nic_name == nic_name2:
+                            nsg_data = {
+                                'display': f'{nsg.name} ({nsg.id})',
+                                'id': nsg.id,
+                                'name': nsg.name
+                            }
+                            security_groups.append(nsg_data)
+                            break
+                    break
+        if len(security_groups) > 0:
+            return security_groups
+        return None
 
     @staticmethod
-    def get_subscription_data(subscription_info):
-        subscription_data = {
-            'subscription_id': subscription_info.subscription_id,
-            'subscription_name': subscription_info.display_name,
-            'tenant_id': subscription_info.tenant_id
-        }
-        return Subscription(subscription_data, strict=False)
+    def get_launched_time(statuses):
+        for status in statuses:
+            if status.display_status == 'Provisioning succeeded':
+                return status.time.isoformat()
+
+        return None
+
+    @staticmethod
+    def get_instance_state(statuses):
+        if statuses:
+            return statuses[-1].display_status.split(' ')[-1].upper()
+
+        return None
 
     @staticmethod
     def get_resource_group_data(resource_group):
@@ -204,13 +250,6 @@ class AzureVmManager(BaseManager):
             'resource_group_id': resource_group.id
         }
         return ResourceGroup(resource_group_data, strict=False)
-
-    @staticmethod
-    def get_instance_state(instance_view):
-        if instance_view:
-            return instance_view.statuses.display_statues
-        else:
-            return ''
 
     @staticmethod
     def get_ultra_ssd_enabled(additional_capabilities):
@@ -223,21 +262,72 @@ class AzureVmManager(BaseManager):
     def get_os_type(os_disk):
         return os_disk.os_type.upper()
 
-    def get_vm_size(self, location):
-        return self.azure_vm_connector.list_virtual_machine_sizes(location)
-
     @staticmethod
-    def get_os_distro(offer):
-        return offer.lower()
+    def extract_os_distro(os_type, offer):
+        if os_type == 'LINUX':
+            os_map = {
+                'suse': 'suse',
+                'rhel': 'redhat',
+                'centos': 'centos',
+                'cent': 'centos',
+                'fedora': 'fedora',
+                'ubuntu': 'ubuntu',
+                'ubuntuserver': 'ubuntu',
+                'oracle': 'oraclelinux',
+                'oraclelinux': 'oraclelinux',
+                'debian': 'debian'
+            }
+
+            offer.lower()
+            for key in os_map:
+                if key in offer:
+                    return os_map[key]
+
+            return 'linux'
+
+        elif os_type == 'WINDOWS':
+            os_distro_string = None
+            offer_splits = offer.split('-')
+
+            version_cmps = ['2016', '2019', '2012']
+
+            for cmp in version_cmps:
+                if cmp in offer_splits:
+                    os_distro_string = f'win{cmp}'
+
+            if os_distro_string is not None and 'R2_RTM' in offer_splits:
+                os_distro_string = f'{os_distro_string}r2'
+
+            if os_distro_string is None:
+                os_distro_string = 'windows'
+
+            return os_distro_string
 
     @staticmethod
     def get_os_details(image_reference):
+        if image_reference:
+            publisher = image_reference.publisher
+            offer = image_reference.offer
+            sku = image_reference.sku
+            if publisher and offer and sku:
+                os_details = f'{publisher}, {offer}, {sku}'
+                return os_details
+
+        return None
+
+    @staticmethod
+    def get_image_detail(location, image_reference, subscription_id):
         publisher = image_reference.publisher
         offer = image_reference.offer
         sku = image_reference.sku
-        os_details = f'{publisher}, {offer}, {sku}'
+        version = image_reference.exact_version
 
-        return os_details
+        if publisher and offer and sku and version:
+            image_detail = f'/Subscriptions/{subscription_id}/Providers/Microsoft.Compute/Locations/{location}' \
+                       f'/Publishers/{publisher}/ArtifactTypes/VMImage/Offers/{offer}/Skus/{sku}/Versions/{version}'
+            return image_detail
+
+        return None
 
     @staticmethod
     def match_vm_type(vm_size):

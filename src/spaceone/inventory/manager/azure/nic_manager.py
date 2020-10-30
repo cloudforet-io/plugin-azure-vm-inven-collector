@@ -12,7 +12,7 @@ class AzureNICManager(BaseManager):
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
-    def get_nic_info(self, vm, resource_group_name):
+    def get_nic_info(self, vm, network_interfaces, public_ip_addresses, virtual_networks):
         '''
         nic_data = {
             "device_index": 0,
@@ -31,17 +31,18 @@ class AzureNICManager(BaseManager):
         nic_data = []
         index = 0
 
-        network_interfaces = vm.network_profile.network_interfaces
-        nic_list = list(self.azure_vm_connector.list_network_interfaces(resource_group_name))
+        vm_network_interfaces = vm.network_profile.network_interfaces
+        match_network_interfaces = self.get_network_interfaces(vm_network_interfaces, network_interfaces)
 
-        for network_interface in network_interfaces:
+        for vm_nic in match_network_interfaces:
             network_data = {
                 'device_index': index,
-                'cidr': self.get_nic_cidr(nic_list, network_interface, resource_group_name),
-                'ip_addresses': self.get_nic_ip_addresses(nic_list, network_interface),
-                'mac_address': self.get_nic_mac_address(nic_list, network_interface),
-                'public_ip_address': self.get_nic_public_ip_addresses(nic_list, network_interface, resource_group_name),
-                'tags': self.get_tags(nic_list, network_interface)
+                'cidr': self.get_nic_cidr(self.get_ip_configurations(vm_nic), virtual_networks),
+                'ip_addresses': self.get_nic_ip_addresses(self.get_ip_configurations(vm_nic)),
+                'mac_address': vm_nic.mac_address,
+                'public_ip_address': self.get_nic_public_ip_addresses(self.get_ip_configurations(vm_nic),
+                                                                      public_ip_addresses),
+                'tags': self.get_tags(vm_nic)
             }
 
             # pprint.pprint(network_data)
@@ -50,68 +51,64 @@ class AzureNICManager(BaseManager):
 
         return nic_data
 
-    def get_nic_public_ip_addresses(self, nic_list, network_interface, resource_group_name):
-        conf = self.get_ip_configurations(nic_list, network_interface)
+    @staticmethod
+    def get_nic_public_ip_addresses(ip_configurations, public_ip_addresses):
+        for ip_conf in ip_configurations:
+            if ip_conf.public_ip_address:
+                ip_name = ip_conf.public_ip_address.id.split('/')[-1]
+                for pub_ip in public_ip_addresses:
+                    if ip_name == pub_ip.name:
+                        return pub_ip.ip_address
 
-        if conf and conf[0].public_ip_address:
-            public_ip_name = conf[0].public_ip_address.id.split('/')[-1]
-            public_ip_address = self.azure_vm_connector.get_public_ip_address(resource_group_name, public_ip_name)
-            return public_ip_address.ip_address
-        else:
-            return ''
+        return None
 
-    def get_nic_cidr(self, nic_list, network_interface, resource_group_name):
-        conf = self.get_ip_configurations(nic_list, network_interface)
+    @staticmethod
+    def get_nic_cidr(ip_configurations, virtual_networks):
+        if ip_configurations:
+            subnet_name = ip_configurations[0].subnet.id.split('/')[-1]
+            for vnet in virtual_networks:
+                for subnet in vnet.subnets:
+                    if subnet_name == subnet.name:
+                        return subnet.address_prefix
 
-        if conf:
-            subnet_name = conf[0].subnet.id.split('/')[-3]
-            subnet = self.azure_vm_connector.get_virtual_network(resource_group_name, subnet_name)
-            if subnet.subnets:
-                return subnet.subnets[0].address_prefix
+        return None
 
-    def get_nic_mac_address(self, nic_list, network_interface):
-        nic = self.match_nic(nic_list, network_interface)
-
-        if nic:
-            return nic.mac_address
-        else:
-            return ''
-
-    def get_nic_ip_addresses(self, nic_list, network_interface):
+    @staticmethod
+    def get_nic_ip_addresses(ip_configurations):
         ip_addresses = []
-        confs = self.get_ip_configurations(nic_list, network_interface)
+        for ip_conf in ip_configurations:
+            ip_addresses.append(ip_conf.private_ip_address)
 
-        for conf in confs:
-            ip_addresses.append(conf.private_ip_address)
+        if ip_addresses:
+            return ip_addresses
 
-        return ip_addresses
+        return None
 
-    def get_ip_configurations(self, nic_list, network_interface):
-        nic = self.match_nic(nic_list, network_interface)
+    @staticmethod
+    def get_ip_configurations(vm_nic):
+        result = []
+        for ip in vm_nic.ip_configurations:
+            result.append(ip)
 
-        if nic and nic.ip_configurations:
-            return nic.ip_configurations
+        return result
 
-        return []
-
-    def get_tags(self, nic_list, network_interface):
+    @staticmethod
+    def get_tags(vm_nic):
         tag_info = {}
-        nic = self.match_nic(nic_list, network_interface)
-        tag_info.update({'name': self.get_nic_id(network_interface)})
-        tag_info.update({'etag': nic.etag})
-        tag_info.update({'enable_accelerated_networking': nic.enable_accelerated_networking})
-        tag_info.update({'enable_ip_forwarding': nic.enable_ip_forwarding})
+        tag_info.update({'name': vm_nic.name})
+        tag_info.update({'etag': vm_nic.etag})
+        tag_info.update({'enable_accelerated_networking': vm_nic.enable_accelerated_networking})
+        tag_info.update({'enable_ip_forwarding': vm_nic.enable_ip_forwarding})
 
         return tag_info
 
-    def match_nic(self, nic_list, network_interface):
-        for nic in nic_list:
-            if nic.name == self.get_nic_id(network_interface):
-                return nic
-
-        return False
-        # TODO: Return 값 처리 추가해주세요. match 못 찾았을때요.
-
     @staticmethod
-    def get_nic_id(network_interface):
-        return network_interface.id.split('/')[-1]
+    def get_network_interfaces(vm_network_interfaces, network_interfaces):
+        result = []
+        for vm_nic in vm_network_interfaces:
+            for nic in network_interfaces:
+                if vm_nic.id.split('/')[-1] == nic.name:
+                    result.append(nic)
+                    break
+
+        return result

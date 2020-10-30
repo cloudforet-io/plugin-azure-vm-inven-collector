@@ -11,7 +11,7 @@ class AzureVNetManager(BaseManager):
         self.params = params
         self.azure_vm_connector: AzureVMConnector = azure_vm_connector
 
-    def get_vnet_subnet_info(self, nic_name, resource_group_name):
+    def get_vnet_subnet_info(self, nic_name, network_interfaces, virtual_networks):
         '''
         vnet_subnet_data = {
             "vnet_data": vnet_data,
@@ -19,11 +19,16 @@ class AzureVNetManager(BaseManager):
         }
         '''
 
-        network_interfaces = self.azure_vm_connector.get_nic(resource_group_name, nic_name)
-        vnet_name = network_interfaces.ip_configurations[0].subnet.id.split('/')[-3]
-        vnet = self.azure_vm_connector.get_virtual_network(resource_group_name, vnet_name)
+        for nic in network_interfaces:
+            if nic.name == nic_name:
+                vnet_name = nic.ip_configurations[0].subnet.id.split('/')[-3]
+                break
 
-        return self.get_vnet_info(vnet), self.get_subnet_info(vnet.subnets[0])
+        for vnet in virtual_networks:
+            if vnet.name == vnet_name:
+                return self.get_vnet_info(vnet), self.get_subnet_info(vnet.subnets[0])
+
+        return None
 
     @staticmethod
     def get_vnet_info(vnet):

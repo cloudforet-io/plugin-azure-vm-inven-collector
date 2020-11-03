@@ -138,12 +138,12 @@ class AzureVmManager(BaseManager):
 
         vm_sizes.append(new_vm_size)
         hardware_data = self.get_vm_hardware_info(new_vm_size.get('list_sizes'), size)
-
         return Hardware(hardware_data, strict=False)
 
     def get_compute_data(self, vm, resource_group_name, network_security_groups, subscription_id):
         vm_info = self.azure_vm_connector.get_vm(resource_group_name, vm.name)
         compute_data = {
+            'keypair': self.get_keypair(vm.os_profile.linux_configuration),
             'instance_state': self.get_instance_state(vm_info.instance_view.statuses),
             'instance_type': vm.hardware_profile.vm_size,
             'launched_at': self.get_launched_time(vm_info.instance_view.statuses),
@@ -155,6 +155,7 @@ class AzureVmManager(BaseManager):
                 'id': vm.id
             }
         }
+
         if vm.zones:
             compute_data.update({
                 'az': f'{vm.location}-{vm.zones[0]}'
@@ -165,8 +166,6 @@ class AzureVmManager(BaseManager):
                 'az': vm.location
             })
 
-        # pprint.pprint(compute_data)
-
         return Compute(compute_data, strict=False)
 
     def get_azure_data(self, vm):
@@ -174,7 +173,7 @@ class AzureVmManager(BaseManager):
             'boot_diagnostics': vm.diagnostics_profile.boot_diagnostics.enabled,
             'ultra_ssd_enabled': self.get_ultra_ssd_enabled(vm.additional_capabilities),
             'write_accelerator_enabled': vm.storage_profile.os_disk.write_accelerator_enabled,
-            'priority': vm.priority,
+            'priority': self.get_vm_priority(vm),
             'tags': self.get_tags(vm.tags)
         }
         return Azure(azure_data, strict=False)
@@ -187,6 +186,19 @@ class AzureVmManager(BaseManager):
             return self.extract_os_distro(os_type, offer.lower())
         else:
             return os_type.lower()
+
+    @staticmethod
+    def get_keypair(linux_configuration):
+        if linux_configuration.ssh:
+            key = linux_configuration.ssh.public_keys[0]
+            return key.path.split('/')[2]
+
+    @staticmethod
+    def get_vm_priority(vm):
+        if hasattr(vm, 'priority'):
+            return vm.priority
+        else:
+            return 'Regular'
 
     @staticmethod
     def get_vm_hardware_info(list_sizes, size):
@@ -328,11 +340,6 @@ class AzureVmManager(BaseManager):
             return image_detail
 
         return None
-
-    @staticmethod
-    def match_vm_type(vm_size):
-        # TODO: find vm_size_list checking method
-        pass
 
     @staticmethod
     def get_tags(tags):

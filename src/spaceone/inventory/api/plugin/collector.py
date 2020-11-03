@@ -32,6 +32,10 @@ class Collector(BaseAPI, collector_pb2_grpc.CollectorServicer):
 
         with self.locator.get_service('CollectorService', metadata) as collector_svc:
             for resource, resource_format in collector_svc.list_resources(params):
+                print("----------- RESULT ---------")
+                print(resource.to_primitive())
+                print("----------- RESULT ---------")
+
                 res = {
                     'state': 'SUCCESS',
                     'message': '',

@@ -1,1 +1,1 @@
-# from healy-test.service.helloworld_service import *
+from spaceone.inventory.service.collector_service import CollectorService

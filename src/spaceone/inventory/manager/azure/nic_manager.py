@@ -45,11 +45,12 @@ class AzureNICManager(BaseManager):
                 'tags': self.get_tags(vm_nic)
             }
 
-            # pprint.pprint(network_data)
+            primary_ip = self.get_primary_ip_addresses(self.get_ip_configurations(vm_nic))
+
             index += 1
             nic_data.append(NIC(network_data, strict=False))
 
-        return nic_data
+        return nic_data, primary_ip
 
     @staticmethod
     def get_nic_public_ip_addresses(ip_configurations, public_ip_addresses):
@@ -83,6 +84,16 @@ class AzureNICManager(BaseManager):
             return ip_addresses
 
         return None
+
+    @staticmethod
+    def get_primary_ip_addresses(ip_configurations):
+        result = {}
+        for ip_conf in ip_configurations:
+            result.update({
+                ip_conf.private_ip_address: ip_conf.primary
+            })
+
+        return result
 
     @staticmethod
     def get_ip_configurations(vm_nic):

@@ -99,7 +99,7 @@ class AzureLoadBalancerManager(BaseManager):
         if lb_rules:
             for lbr in lb_rules:
                 ports.append(lbr.frontend_port)
-                protocols.append(lbr.protocol)
+                protocols.append(lbr.protocol.upper())
 
         return ports, protocols
 

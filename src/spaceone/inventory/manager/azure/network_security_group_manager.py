@@ -59,7 +59,7 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         result = []
         for s_rule in security_rules:
             security_rule_data = {
-                'protocol': s_rule.protocol,
+                'protocol': self.get_nsg_protocol(s_rule.protocol),
                 'remote_id': s_rule.id,
                 'security_group_name': s_rule.id.split('/')[-3],
                 'description': s_rule.description,
@@ -76,6 +76,12 @@ class AzureNetworkSecurityGroupManager(BaseManager):
             result.append(security_rule_data)
 
         return result
+
+    @staticmethod
+    def get_nsg_protocol(protocol):
+        if protocol == '*':
+            return 'ALL'
+        return protocol
 
     @staticmethod
     def get_network_security_group_from_nic(vm_network_interfaces, network_interfaces,

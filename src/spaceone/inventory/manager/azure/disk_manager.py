@@ -62,6 +62,7 @@ class AzureDiskManager(BaseManager):
                 'caching': disk.caching,
                 'storage_account_type': disk.managed_disk.storage_account_type,
                 'disk_encryption_set': self.get_disk_encryption(disk),
+                'disk_id': disk.managed_disk.id
             }
         }
         disk = self.get_iops_bps(disk, list_disks)

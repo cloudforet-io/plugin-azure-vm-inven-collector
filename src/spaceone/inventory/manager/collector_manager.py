@@ -109,11 +109,13 @@ class CollectorManager(BaseManager):
         vm_sizes = []
 
         for vm in vms:
-            server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups, vm_sizes)
-
             disk_vos = disk_manager.get_disk_info(vm, list_disks)
 
-            nic_vos = nic_manager.get_nic_info(vm, network_interfaces, public_ip_addresses, virtual_networks)
+            nic_vos, primary_ip = nic_manager.get_nic_info(vm, network_interfaces, public_ip_addresses,
+                                                           virtual_networks)
+
+            server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups,
+                                                 vm_sizes, primary_ip)
 
             lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
 

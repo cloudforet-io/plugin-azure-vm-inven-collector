@@ -97,6 +97,9 @@ class CollectorManager(BaseManager):
         #         vms.append(scale_set_vms)
 
         subscription_info = azure_vm_connector.get_subscription_info(subscription)
+
+        # tenants_info = azure_vm_connector.list_tenants()
+
         subscription_data = {
             'subscription_id': subscription_info.subscription_id,
             'subscription_name': subscription_info.display_name,
@@ -139,8 +142,7 @@ class CollectorManager(BaseManager):
                 '_metadata': meta_manager.get_metadata(),
                 'reference': ReferenceModel({
                     'resource_id': server_data['data']['compute']['instance_id'],
-                    'external_link': f"https://portal.azure.com/#@{server_data['data']['compute']['instance_id']}.onmicrosoft.com/resource/subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data['data']['compute']['instance_name']}/overview"
-                    # SAMPLE: https://portal.azure.com/#@Megazonecloudcorp.onmicrosoft.com/resource/subscriptions/3ec64e1e-1ce8-4f2c-82a0-a7f6db0899ca/resourceGroups/CLOUDONE-TEST/providers/Microsoft.Compute/virtualMachines/haely2/overview
+                    'external_link': f"https://portal.azure.com/#@.onmicrosoft.com/resource/subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data['data']['compute']['instance_name']}/overview"
                 })
             })
 
@@ -171,39 +173,87 @@ class CollectorManager(BaseManager):
     @staticmethod
     def get_region_from_result(result):
         REGION_INFO = {
-            'us-east-1': {'name': 'US East (N. Virginia)', 'tags': {'latitude': '39.028760', 'longitude': '-77.458263'}},
-            'us-east-2': {'name': 'US East (Ohio)', 'tags': {'latitude': '40.103564', 'longitude': '-83.200092'}},
-            'us-west-1': {'name': 'US West (N. California)', 'tags': {'latitude': '37.242183', 'longitude': '-121.783380'}},
-            'us-west-2': {'name': 'US West (Oregon)', 'tags': {'latitude': '45.841046', 'longitude': '-119.658093'}},
-            'af-south-1': {'name': 'Africa (Cape Town)', 'tags': {'latitude': '-33.932268', 'longitude': '18.424434'}},
-            'ap-east-1': {'name': 'Asia Pacific (Hong Kong)', 'tags': {'latitude': '22.365560', 'longitude': '114.119420'}},
-            'ap-south-1': {'name': 'Asia Pacific (Mumbai)', 'tags': {'latitude': '19.147428', 'longitude': '73.013805'}},
-            'ap-northeast-3': {'name': 'Asia Pacific (Osaka-Local)', 'tags': {'latitude': '34.675638', 'longitude': '135.495706'}},
-            'ap-northeast-2': {'name': 'Asia Pacific (Seoul)', 'tags': {'latitude': '37.528547', 'longitude': '126.871867'}},
-            'ap-southeast-1': {'name': 'Asia Pacific (Singapore)', 'tags': {'latitude': '1.321259', 'longitude': '103.695942'}},
-            'ap-southeast-2	': {'name': 'Asia Pacific (Sydney)', 'tags': {'latitude': '-33.921423', 'longitude': '151.188076'}},
-            'ap-northeast-1': {'name': 'Asia Pacific (Tokyo)', 'tags': {'latitude': '35.648411', 'longitude': '139.792566'}},
-            'ca-central-1': {'name': 'Canada (Central)', 'tags': {'latitude': '43.650803', 'longitude': '-79.361824'}},
-            'cn-north-1': {'name': 'China (Beijing)', 'tags': {'latitude': '39.919635', 'longitude': '116.307237'}},
-            'cn-northwest-1': {'name': 'China (Ningxia)', 'tags': {'latitude': '37.354511', 'longitude': '106.106147'}},
-            'eu-central-1': {'name': 'Europe (Frankfurt)', 'tags': {'latitude': '50.098645', 'longitude': '8.632262'}},
-            'eu-west-1': {'name': 'Europe (Ireland)', 'tags': {'latitude': '53.330893', 'longitude': '-6.362217'}},
-            'eu-west-2': {'name': 'Europe (London)', 'tags': {'latitude': '51.519749', 'longitude': '-0.087804'}},
-            'eu-south-1': {'name': 'Europe (Milan)', 'tags': {'latitude': '45.448648', 'longitude': '9.147316'}},
-            'eu-west-3': {'name': 'Europe (Paris)', 'tags': {'latitude': '48.905302', 'longitude': '2.369778'}},
-            'eu-north-1': {'name': 'Europe (Stockholm)', 'tags': {'latitude': '59.263542', 'longitude': '18.104861'}},
-            'me-south-1': {'name': 'Middle East (Bahrain)', 'tags': {'latitude': '26.240945', 'longitude': '50.586321'}},
-            'sa-east-1': {'name': 'South America (São Paulo)', 'tags': {'latitude': '-23.493549', 'longitude': '-46.809319'}},
-            'us-gov-east-1': {'name': 'AWS GovCloud (US-East)'},
-            'us-gov-west-1': {'name': 'AWS GovCloud (US)'},
+            'eastus': {'name': 'US East (Virginia)', 'tags': {'latitude': '37.3719', 'longitude': '-79.8164'}},
+            'eastus2': {'name': 'US East 2 (Virginia)', 'tags': {'latitude': '36.6681', 'longitude': '-78.3889'}},
+            'westus': {'name': 'US West (California)', 'tags': {'latitude': '37.783', 'longitude': '-122.417'}},
+            'westus2': {'name': 'US West 2 (Washington)', 'tags': {'latitude': '47.233', 'longitude': '-119.852'}},
+            'centralus': {'name': 'US Central (Iowa)', 'tags': {'latitude': '41.5908', 'longitude': '-93.6208'}},
+            'southcentralus': {'name': 'US South Central (Texas)',
+                               'tags': {'latitude': '29.4167', 'longitude': '-98.5'}},
+            'northcentralus': {'name': 'US North Central (Illinois)',
+                               'tags': {'latitude': '41.8819', 'longitude': '-87.6278'}},
+            'westcentralus': {'name': 'US West Central (Wyoming)',
+                              'tags': {'latitude': '40.890', 'longitude': '-110.234'}},
+            'canadacentral': {'name': 'Canada Central (Toronto)',
+                              'tags': {'latitude': '43.653', 'longitude': '-79.383'}},
+            'canadaeast': {'name': 'Canada East (Quebec)',
+                           'tags': {'latitude': '46.817', 'longitude': '-71.217'}},
+            'southafricanorth': {'name': 'South Africa North (Johannesburg)',
+                                 'tags': {'latitude': '-25.731340', 'longitude': '28.218370'}},
+            'southafricawest': {'name': 'South Africa West (Cape Town)',
+                                'tags': {'latitude': '-34.075691', 'longitude': '18.843266'}},
+            'eastasia': {'name': 'Asia Pacific East (Hong Kong)',
+                         'tags': {'latitude': '22.267', 'longitude': '114.188'}},
+            'centralindia': {'name': 'Asia Pacific Central India (Pune)',
+                             'tags': {'latitude': '18.5822', 'longitude': '73.9197'}},
+            'southindia': {'name': 'Asia Pacific South India (Chennai)',
+                           'tags': {'latitude': '12.9822', 'longitude': '80.1636'}},
+            'westindia': {'name': 'Asia Pacific West India (Mumbai)',
+                          'tags': {'latitude': '19.088', 'longitude': '72.868'}},
+            'southeastasia': {'name': 'Asia Pacific South East (Singapore)',
+                              'tags': {'latitude': '1.283', 'longitude': '103.833'}},
+            'japaneast': {'name': 'Asia Pacific Japan East (Tokyo, Saitama)',
+                          'tags': {'latitude': '35.68', 'longitude': '139.77'}},
+            'japanwest': {'name': 'Asia Pacific Japan West (Osaka)',
+                          'tags': {'latitude': '34.6939', 'longitude': '135.5022'}},
+            'koreacentral': {'name': 'Asia Pacific Korea Central (Seoul)',
+                             'tags': {'latitude': '37.5665', 'longitude': '126.9780'}},
+            'koreasouth': {'name': 'Asia Pacific Korea South (Busan)',
+                           'tags': {'latitude': '35.1796', 'longitude': '129.0756'}},
+            'australiaeast': {'name': 'Asia Pacific Australia East (New South Wales)',
+                              'tags': {'latitude': '-33.86', 'longitude': '151.2094'}},
+            'australiacentral': {'name': 'Asia Pacific Australia Central (Canberra)',
+                                 'tags': {'latitude': '-35.3075', 'longitude': '149.1244'}},
+            'australiacentral2': {'name': 'Asia Pacific Australia Central 2 (Canberra)',
+                                  'tags': {'latitude': '-35.3075', 'longitude': '149.1244'}},
+            'australiasoutheast': {'name': 'Asia Pacific Australia South East (Victoria)',
+                                   'tags': {'latitude': '-37.8136', 'longitude': '144.9631'}},
+            'northeurope': {'name': 'North Europe (Ireland)', 'tags': {'latitude': '53.3478', 'longitude': '-6.2597'}},
+            'norwayeast': {'name': 'North Europe (Norway East)',
+                           'tags': {'latitude': '59.913868', 'longitude': '10.752245'}},
+            'norwaywest': {'name': 'North Europe (Norway West)',
+                           'tags': {'latitude': '58.969975', 'longitude': '5.733107'}},
+            'germanywestcentral': {'name': 'Europe Germany West Central (Frankfurt)',
+                                   'tags': {'latitude': '50.110924', 'longitude': '8.682127'}},
+            'germanynorth': {'name': 'Europe Germany North (Berlin)',
+                             'tags': {'latitude': '53.073635', 'longitude': '8.806422'}},
+            'switzerlandnorth': {'name': 'Europe Switzerland North (Zurich)',
+                                 'tags': {'latitude': '47.451542', 'longitude': '8.564572'}},
+            'switzerlandwest': {'name': 'Europe Switzerland West (Geneva)',
+                                'tags': {'latitude': '46.204391', 'longitude': '6.143158'}},
+            'francecentral': {'name': 'Europe France Central (Paris)',
+                              'tags': {'latitude': '46.3772', 'longitude': '2.3730'}},
+            'francesouth': {'name': 'Europe France South (Marseille)',
+                            'tags': {'latitude': '43.8345', 'longitude': '2.1972'}},
+            'westeurope': {'name': 'West Europe (Netherlands)', 'tags': {'latitude': '52.3667', 'longitude': '4.9'}},
+            'uksouth': {'name': 'UK South (London)', 'tags': {'latitude': '50.941', 'longitude': '-0.799'}},
+            'ukwest': {'name': 'UK West (Cardiff)', 'tags': {'latitude': '53.427', 'longitude': '-3.084'}},
+            'uaenorth': {'name': 'Middle East UAE North (Dubai)',
+                         'tags': {'latitude': '25.266666', 'longitude': '55.316666'}},
+            'uaecentral': {'name': 'Middle East UAE Central (Abu Dhabi)',
+                           'tags': {'latitude': '24.466667', 'longitude': '54.366669'}},
+            'brazilsouth': {'name': 'South America Brazil South (Sao Paulo State)',
+                            'tags': {'latitude': '-23.55', 'longitude': '-46.633'}},
+            'brazilsoutheast': {'name': 'South America Brazil South East (Rio)',
+                                'tags': {'latitude': '-22.90278', 'longitude': '-43.2075'}},
         }
 
-        match_region_info = REGION_INFO.get(getattr(result.data.compute, 'region_name', None))
+        match_region_info = REGION_INFO.get(getattr(result, 'region_code', None))
 
-        if match_region_info is not None:
+        if match_region_info:
             region_info = match_region_info.copy()
             region_info.update({
-                'region_code': result.data.compute.region_name
+                'region_code': result.region_code
             })
 
             return Region(region_info, strict=False)

@@ -34,7 +34,7 @@ class Collector(BaseAPI, collector_pb2_grpc.CollectorServicer):
             for resource, resource_format in collector_svc.list_resources(params):
                 print("----------- RESULT ---------")
                 print(resource.to_primitive())
-                print("----------- RESULT ---------")
+                print()
 
                 res = {
                     'state': 'SUCCESS',

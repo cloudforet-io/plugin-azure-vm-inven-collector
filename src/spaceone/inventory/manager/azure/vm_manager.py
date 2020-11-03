@@ -20,7 +20,7 @@ class AzureVmManager(BaseManager):
     def list_vms(self, resource_group_name):
         return self.azure_vm_connector.list_vms(resource_group_name)
 
-    def get_vm_info(self, vm, resource_group, subscription, network_security_groups, vm_sizes):
+    def get_vm_info(self, vm, resource_group, subscription, network_security_groups, vm_sizes, primary_ip):
         '''
         server_data = {
             "os_type": "LINUX" | "WINDOWS"
@@ -75,7 +75,7 @@ class AzureVmManager(BaseManager):
 
         resource_group_name = resource_group.name
 
-        vm_dic = self.get_vm_dic(vm)
+        vm_dic = self.get_vm_dic(vm, primary_ip)
         os_data = self.get_os_data(vm.storage_profile)
         hardware_data = self.get_hardware_data(vm, vm_sizes)
         azure_data = self.get_azure_data(vm)
@@ -95,11 +95,13 @@ class AzureVmManager(BaseManager):
 
         return vm_dic
 
-    def get_vm_dic(self, vm):
+    def get_vm_dic(self, vm, primary_ip):
         vm_data = {
             'name': vm.name,
             'os_type': self.get_os_type(vm.storage_profile.os_disk),
-            'region_code': vm.location
+            'region_code': vm.location,
+            'ip_addresses': self.get_ip_addresses(primary_ip),
+            'primary_ip_address': self.get_primary_ip_address(primary_ip)
         }
         return vm_data
 
@@ -147,12 +149,12 @@ class AzureVmManager(BaseManager):
             'instance_state': self.get_instance_state(vm_info.instance_view.statuses),
             'instance_type': vm.hardware_profile.vm_size,
             'launched_at': self.get_launched_time(vm_info.instance_view.statuses),
-            'instance_id': vm.vm_id,
+            'instance_id': vm.id,
             'instance_name': vm.name,
             'security_groups': self.get_security_groups(vm.network_profile.network_interfaces, network_security_groups),
             'image': self.get_image_detail(vm.location, vm.storage_profile.image_reference, subscription_id),
             'tags': {
-                'id': vm.id
+                'vm_id': vm.vm_id
             }
         }
 
@@ -160,7 +162,6 @@ class AzureVmManager(BaseManager):
             compute_data.update({
                 'az': f'{vm.location}-{vm.zones[0]}'
             })
-
         else:
             compute_data.update({
                 'az': vm.location
@@ -170,9 +171,9 @@ class AzureVmManager(BaseManager):
 
     def get_azure_data(self, vm):
         azure_data = {
-            'boot_diagnostics': vm.diagnostics_profile.boot_diagnostics.enabled,
+            'boot_diagnostics': self.get_boot_diagnostics(vm.diagnostics_profile.boot_diagnostics),
             'ultra_ssd_enabled': self.get_ultra_ssd_enabled(vm.additional_capabilities),
-            'write_accelerator_enabled': vm.storage_profile.os_disk.write_accelerator_enabled,
+            'write_accelerator_enabled': self.get_write_accelerator_enabled(vm.storage_profile.os_disk),
             'priority': self.get_vm_priority(vm),
             'tags': self.get_tags(vm.tags)
         }
@@ -188,14 +189,45 @@ class AzureVmManager(BaseManager):
             return os_type.lower()
 
     @staticmethod
+    def get_write_accelerator_enabled(os_disk):
+        if os_disk.write_accelerator_enabled:
+            return os_disk.write_accelerator_enabled
+
+        return False
+
+    @staticmethod
+    def get_boot_diagnostics(boot_diagnostics):
+        if boot_diagnostics.enabled:
+            return boot_diagnostics.enabled
+
+        return True
+
+    @staticmethod
     def get_keypair(linux_configuration):
         if linux_configuration.ssh:
             key = linux_configuration.ssh.public_keys[0]
             return key.path.split('/')[2]
+        return ""
+
+    @staticmethod
+    def get_ip_addresses(primary_ip):
+        ip_addresses = []
+        if primary_ip:
+            ip_addresses = list(primary_ip.keys())
+
+        return ip_addresses
+
+    @staticmethod
+    def get_primary_ip_address(primary_ip):
+        if primary_ip:
+            for key, value in primary_ip.items():
+                if value:
+                    return key
+        return ''
 
     @staticmethod
     def get_vm_priority(vm):
-        if hasattr(vm, 'priority'):
+        if hasattr(vm, 'priority') and vm.priority:
             return vm.priority
         else:
             return 'Regular'

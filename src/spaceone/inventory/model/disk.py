@@ -9,11 +9,12 @@ class DiskTags(Model):
     disk_encryption_set = StringType(choices=('PMK', 'CMK'), default='PMK')
     iops = IntType()
     throughput_mbps = IntType()
+    disk_id = StringType()
 
 
 class Disk(Model):
     device_index = IntType()
-    device = StringType()
+    device = StringType(default='')
     disk_type = StringType(choices=('os_disk', 'data_disk'))
     size = FloatType()
     tags = ModelType(DiskTags, default={})

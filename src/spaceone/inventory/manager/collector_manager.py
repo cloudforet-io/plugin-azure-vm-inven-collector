@@ -83,6 +83,16 @@ class CollectorManager(BaseManager):
         list_disks = list(azure_vm_connector.list_disk())
         public_ip_addresses = list(azure_vm_connector.list_public_ip_address(resource_group_name))
         virtual_networks = list(azure_vm_connector.list_virtual_network(resource_group_name))
+        # vmss = list(azure_vm_connector.list_virtual_machine_scale_sets(resource_group_name))
+
+        # if vmss:
+        #     for scale_set in vmss:
+        #         print(scale_set.name)
+        #         scale_set_vms = list(azure_vm_connector.list_scale_set_vms(resource_group_name, scale_set.name))
+                # pprint.pprint(scale_set_vms)
+                # for ss in scale_set_vms:
+                #     vms.append(ss)
+                # vms.append(scale_set_vms)
 
         subscription_info = azure_vm_connector.get_subscription_info(subscription)
         subscription_data = {

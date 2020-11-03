@@ -91,3 +91,9 @@ class AzureVMConnector(BaseConnector):
 
     def get_subscription_info(self, subscription_id):
         return self.subscription_client.subscriptions.get(subscription_id)
+
+    def list_virtual_machine_scale_sets(self, resource_group_name):
+        return self.compute_client.virtual_machine_scale_sets.list(resource_group_name)
+
+    def list_scale_set_vms(self, resource_group_name, scale_set_name):
+        return self.compute_client.virtual_machine_scale_set_vms.list(resource_group_name, scale_set_name)

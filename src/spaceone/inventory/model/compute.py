@@ -22,5 +22,5 @@ class Compute(Model):
     instance_name = StringType(default='')
     security_groups = ListType(ModelType(SecurityGroups))
     image = StringType()
-    account = StringType(serialize_when_none=False)
+    account = StringType(default='')
     tags = ModelType(ComputeTags, default={})

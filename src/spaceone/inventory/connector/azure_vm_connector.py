@@ -50,6 +50,9 @@ class AzureVMConnector(BaseConnector):
     def list_resource_groups(self):
         return self.resource_client.resource_groups.list()
 
+    def list_tenants(self):
+        return self.subscription_client.tenants.list()
+
     def list_vms(self, resource_group_name, **query):
         return list(self.compute_client.virtual_machines.list(resource_group_name=resource_group_name, **query))
 

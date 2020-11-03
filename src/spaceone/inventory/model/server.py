@@ -21,8 +21,8 @@ class ServerData(Model):
     load_balancer = ListType(ModelType(LoadBalancer))
     vnet = ModelType(VNet)
     subnet = ModelType(Subnet)
-    vmss = ModelType(VMSS)
-    monitor = ModelType(Monitor)
+    vmss = ModelType(VMSS, serialize_when_none=False)
+    monitor = ModelType(Monitor, serialize_when_none=False)
     subscription = ModelType(Subscription)
     resource_group = ModelType(ResourceGroup)
 

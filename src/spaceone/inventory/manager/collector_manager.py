@@ -72,8 +72,10 @@ class CollectorManager(BaseManager):
 
         nic_manager: AzureNICManager = AzureNICManager(params, azure_vm_connector=azure_vm_connector)
         resource_group_manager: AzureResourceGroupManager(params, azure_vm_connector=azure_vm_connector)
-        vmss_manager: AzureVMScaleSetManager = AzureVMScaleSetManager(params, azure_vm_connector=azure_vm_connector)
+        # vmss_manager: AzureVMScaleSetManager = AzureVMScaleSetManager(params, azure_vm_connector=azure_vm_connector)
         vnet_manager: AzureVNetManager = AzureVNetManager(params, azure_vm_connector=azure_vm_connector)
+
+        meta_manager: MetadataManager = MetadataManager()
 
         vms = params['vms']
 
@@ -89,10 +91,10 @@ class CollectorManager(BaseManager):
         #     for scale_set in vmss:
         #         print(scale_set.name)
         #         scale_set_vms = list(azure_vm_connector.list_scale_set_vms(resource_group_name, scale_set.name))
-                # pprint.pprint(scale_set_vms)
-                # for ss in scale_set_vms:
-                #     vms.append(ss)
-                # vms.append(scale_set_vms)
+        #         pprint.pprint(scale_set_vms)
+        #         for ss in scale_set_vms:
+        #             vms.append(ss)
+        #         vms.append(scale_set_vms)
 
         subscription_info = azure_vm_connector.get_subscription_info(subscription)
         subscription_data = {
@@ -131,7 +133,14 @@ class CollectorManager(BaseManager):
                 'subscription': Subscription(subscription_data, strict=False)
             })
 
-            print(server_data)
+            server_data.update({
+                '_metadata': meta_manager.get_metadata(),
+                'reference': ReferenceModel({
+                    'resource_id': server_data['data']['compute']['instance_id'],
+                    'external_link': f"https://portal.azure.com/#@{server_data['data']['compute']['instance_id']}.onmicrosoft.com/resource/subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data['data']['compute']['instance_name']}/overview"
+                    # SAMPLE: https://portal.azure.com/#@Megazonecloudcorp.onmicrosoft.com/resource/subscriptions/3ec64e1e-1ce8-4f2c-82a0-a7f6db0899ca/resourceGroups/CLOUDONE-TEST/providers/Microsoft.Compute/virtualMachines/haely2/overview
+                })
+            })
 
             server_vos.append(Server(server_data, strict=False))
 
@@ -150,11 +159,11 @@ class CollectorManager(BaseManager):
 
         try:
             resources = self.list_all_resources(params)
-            print(f'   [{params["resource_group"]}] Finished {time.time() - start_time} Seconds')
+            print(f'   [{params["resource_group"].name}] Finished {time.time() - start_time} Seconds')
             return resources
 
         except Exception as e:
-            print(f'[ERROR: {params["resource_group"]}] : {e}')
+            print(f'[ERROR: {params["resource_group"].name}] : {e}')
             raise e
 
     @staticmethod

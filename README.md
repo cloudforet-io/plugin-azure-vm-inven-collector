@@ -6,16 +6,16 @@
 ## SETTING
 You should insert information about account in SpaceONE's **Service Account** initially.
 * Base Information
-	* name
-	* Tenant ID
-	* Subscription ID
-	* Tag
+	* `name`
+	* `Tenant ID`
+	* `Subscription ID`
+	* `Tag`
 
 * Credentials
-	* Tenant ID
-	* Subscription ID
-	* Client Secret
-	* Client ID
+	* `Tenant ID`
+	* `Subscription ID`
+	* `Client Secret`
+	* `Client ID`
 
 ## CONTENTS
 The information collected for each VM is as follows.

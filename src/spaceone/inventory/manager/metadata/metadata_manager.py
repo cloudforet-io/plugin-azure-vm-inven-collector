@@ -84,6 +84,9 @@ security_group = TableDynamicLayout.set_fields('Network Security Groups', root_p
     TextDyField.data_source('Port Rage', 'port'),
     TextDyField.data_source('Remote', 'remote'),
     TextDyField.data_source('Priority', 'priority'),
+    EnumDyField.data_source('Action', 'action', default_badge={
+        'indigo.500': ['allow'], 'coral.600': ['deny']
+    }),
     TextDyField.data_source('Description', 'description'),
 ])
 

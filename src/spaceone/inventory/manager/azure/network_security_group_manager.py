@@ -65,7 +65,8 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                 'description': s_rule.description,
                 'direction': s_rule.direction.lower(),
                 'priority': s_rule.priority,
-                'security_group_id': sg_id
+                'security_group_id': sg_id,
+                'action': s_rule.access.lower()
             }
 
             remote_data = self.get_nsg_remote(s_rule)

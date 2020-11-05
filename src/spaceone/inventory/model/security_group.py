@@ -15,3 +15,4 @@ class SecurityGroup(Model):
     port_range_max = IntType(serialize_when_none=False)
     port = StringType(serialize_when_none=False)
     priority = IntType(serialize_when_none=False)
+    action = StringType(choices=("allow", "deny"))

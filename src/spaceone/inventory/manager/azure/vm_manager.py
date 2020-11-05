@@ -239,7 +239,7 @@ class AzureVmManager(BaseManager):
             if list_size.name == size:
                 result.update({
                     'core': list_size.number_of_cores,
-                    'memory': round(float(list_size.memory_in_mb / 1074), 2)
+                    'memory': round(float(list_size.memory_in_mb / 1024), 2)
                 })
                 break
 
@@ -261,7 +261,7 @@ class AzureVmManager(BaseManager):
                     for nic_name in nic_names:
                         if nic_name == nic_name2:
                             nsg_data = {
-                                'display': f'{nsg.name} ({nsg.id})',
+                                'display': nsg.name,
                                 'id': nsg.id,
                                 'name': nsg.name
                             }

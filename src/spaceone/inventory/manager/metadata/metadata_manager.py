@@ -101,8 +101,8 @@ lb = TableDynamicLayout.set_fields('Load Balancer', root_path='data.load_balance
 ])
 
 tags = TableDynamicLayout.set_fields('Azure Tags', root_path='data.azure.tags', fields=[
-    TextDyField.data_source('Key', 'Key'),
-    TextDyField.data_source('Value', 'Value'),
+    TextDyField.data_source('Key', 'key'),
+    TextDyField.data_source('Value', 'value'),
 ])
 
 metadata = ServerMetadata.set_layouts([azure_vm, tags, disk, nic, security_group, lb])

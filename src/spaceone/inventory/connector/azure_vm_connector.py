@@ -36,9 +36,9 @@ class AzureVMConnector(BaseConnector):
         subscription_id = secret_data['subscription_id']
 
         os.environ["AZURE_SUBSCRIPTION_ID"] = subscription_id
-        os.environ["AZURE_TENANT_ID"] = secret_data['azure_tenant_id']
-        os.environ["AZURE_CLIENT_ID"] = secret_data['azure_client_id']
-        os.environ["AZURE_CLIENT_SECRET"] = secret_data['azure_client_secret']
+        os.environ["AZURE_TENANT_ID"] = secret_data['tenant_id']
+        os.environ["AZURE_CLIENT_ID"] = secret_data['client_id']
+        os.environ["AZURE_CLIENT_SECRET"] = secret_data['client_secret']
 
         credential = DefaultAzureCredential()
 

@@ -9,7 +9,7 @@ class SecurityGroups(Model):
 
 
 class ComputeTags(Model):
-    id = StringType()
+    vm_id = StringType()
 
 
 class Compute(Model):

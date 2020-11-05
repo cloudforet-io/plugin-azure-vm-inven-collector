@@ -138,6 +138,8 @@ class CollectorManager(BaseManager):
                 'subscription': Subscription(subscription_data, strict=False)
             })
 
+            server_data['data']['compute']['account'] = subscription_data['subscription_name']
+
             server_data.update({
                 '_metadata': meta_manager.get_metadata(),
                 'reference': ReferenceModel({

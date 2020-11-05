@@ -36,13 +36,13 @@ setup(
         'spaceone-tester',
         'schematics',
         'adal',
+        'msrestazure',
         'azure-identity',
         'azure-mgmt-compute==17.0.0b1',
         'azure-mgmt-network==16.0.0b1',
         'azure-mgmt-resource==15.0.0b1',
         'azure-mgmt-monitor==1.0.0b1',
         'azure-mgmt-storage==16.0.0b1',
-
     ],
     zip_safe=False,
 )

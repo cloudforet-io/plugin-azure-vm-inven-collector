@@ -3,6 +3,7 @@ spaceone-api
 spaceone-tester
 schematics
 adal
+msrestazure
 
 azure-identity
 azure-mgmt-compute==17.0.0b1

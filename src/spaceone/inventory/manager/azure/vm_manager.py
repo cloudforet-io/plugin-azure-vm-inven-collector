@@ -109,7 +109,7 @@ class AzureVmManager(BaseManager):
         os_data = {
             'os_distro': self.get_os_distro(self.get_os_type(vm_storage_profile.os_disk),
                                             vm_storage_profile.image_reference.offer),
-            'os_details': self.get_os_details(vm_storage_profile.image_reference)
+            'details': self.get_os_details(vm_storage_profile.image_reference)
         }
         return OS(os_data, strict=False)
 

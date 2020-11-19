@@ -122,7 +122,12 @@ class CollectorService(BaseService):
         server_resource_format = {'resource_type': 'inventory.Server',
                                   'match_rules': {'1': ['reference.resource_id']}}
         region_resource_format = {'resource_type': 'inventory.Region',
-                                  'match_rules': {'1': ['region_code', 'region_type']}}
+                                  'match_rules': {'1': ['region_code', 'provider']}}
+        cloud_service_type_resource_format = {'resource_type': 'inventory.CloudServiceType',
+                                              'match_rules': {'1': ['name', 'group', 'provider']}}
+
+        for cloud_service_type in self.collector_manager.list_cloud_service_types():
+            yield cloud_service_type, cloud_service_type_resource_format
 
         resource_groups = self.collector_manager.list_all_resource_groups(params)
 

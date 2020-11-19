@@ -30,7 +30,6 @@ class ServerData(Model):
 class Server(Model):
     name = StringType()
     region_code = StringType()
-    region_type = StringType(default='AZURE')
     data = ModelType(ServerData)
     nics = ListType(ModelType(NIC))
     disks = ListType(ModelType(Disk))
@@ -39,6 +38,7 @@ class Server(Model):
     server_type = StringType(default='VM')
     os_type = StringType(choices=('LINUX', 'WINDOWS'))
     provider = StringType(default='azure')
+    cloud_service_type = StringType(default='VirtualMachine')
+    cloud_service_group = StringType(default='Compute')
     _metadata = ModelType(ServerMetadata, serialized_name='metadata')
     reference = ModelType(ReferenceModel)
-

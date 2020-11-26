@@ -79,8 +79,7 @@ class AzureVmManager(BaseManager):
         os_data = self.get_os_data(vm.storage_profile)
         hardware_data = self.get_hardware_data(vm, vm_sizes)
         azure_data = self.get_azure_data(vm)
-        compute_data = self.get_compute_data(vm, resource_group_name, network_security_groups,
-                                             subscription)
+        compute_data = self.get_compute_data(vm, resource_group_name, network_security_groups, subscription)
         resource_group_data = self.get_resource_group_data(resource_group)
 
         vm_dic.update({

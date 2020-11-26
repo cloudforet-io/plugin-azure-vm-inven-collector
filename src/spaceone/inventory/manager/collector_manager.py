@@ -13,6 +13,7 @@ from spaceone.inventory.model.server import Server, ReferenceModel
 from spaceone.inventory.model.region import Region
 from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.cloud_service_type import CloudServiceType
+from spaceone.inventory.model.monitor import Monitor
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -136,7 +137,10 @@ class CollectorManager(BaseManager):
                 'security_group': nsg_vos,
                 'vnet': vnet_data,
                 'subnet': subnet_data,
-                'subscription': Subscription(subscription_data, strict=False)
+                'subscription': Subscription(subscription_data, strict=False),
+                'monitor': Monitor({
+                    'resource_id': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
+                }, strict=False)
             })
 
             server_data['data']['compute']['account'] = subscription_data['subscription_name']

@@ -6,4 +6,4 @@ class Monitor(Model):
     class Option:
         serialize_when_none = False
 
-    # TODO
+    resource_id = StringType()

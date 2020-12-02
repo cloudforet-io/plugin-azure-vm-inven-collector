@@ -138,7 +138,7 @@ class CollectorManager(BaseManager):
                 'vnet': vnet_data,
                 'subnet': subnet_data,
                 'subscription': Subscription(subscription_data, strict=False),
-                'monitor': Monitor({
+                'azure_monitor': Monitor({
                     'resource_id': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
                 }, strict=False)
             })

@@ -22,7 +22,7 @@ class ServerData(Model):
     vnet = ModelType(VNet)
     subnet = ModelType(Subnet)
     vmss = ModelType(VMSS, serialize_when_none=False)
-    monitor = ModelType(Monitor, serialize_when_none=False)
+    azure_monitor = ModelType(Monitor, serialize_when_none=False)
     subscription = ModelType(Subscription)
     resource_group = ModelType(ResourceGroup)
 

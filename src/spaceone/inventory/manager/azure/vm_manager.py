@@ -39,8 +39,8 @@ class AzureVmManager(BaseManager):
                     "write_accelerator_enabled": "true" | "false",
                     "priority": "Regular" | "Low" | "Spot",
                     "tags": {
-                        "Key": "",
-                        "Value": ""
+                        "key": "",
+                        "value": ""
                     },
                 },
                 "hardware": {
@@ -377,9 +377,9 @@ class AzureVmManager(BaseManager):
         tags_result = []
         if tags:
             for k, v in tags.items():
-                tag_info = {}
-                tag_info.update({'key': k})
-                tag_info.update({'value': v})
-                tags_result.append(tag_info)
+                tags_result.append({
+                    'key': k,
+                    'value': v
+                })
 
         return tags_result

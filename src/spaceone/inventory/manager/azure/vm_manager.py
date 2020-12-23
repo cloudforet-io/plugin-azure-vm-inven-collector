@@ -203,7 +203,7 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_keypair(linux_configuration):
-        if linux_configuration.ssh:
+        if linux_configuration.ssh is not None:
             key = linux_configuration.ssh.public_keys[0]
             return key.path.split('/')[2]
         return ""

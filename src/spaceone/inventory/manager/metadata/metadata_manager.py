@@ -3,7 +3,7 @@ from spaceone.inventory.model.metadata.metadata import ServerMetadata
 from spaceone.inventory.model.metadata.metadata_dynamic_layout import ItemDynamicLayout, TableDynamicLayout, \
     ListDynamicLayout
 from spaceone.inventory.model.metadata.metadata_dynamic_field import TextDyField, EnumDyField, ListDyField, \
-    DateTimeDyField
+    DateTimeDyField, SizeField
 
 virtual_machine = ItemDynamicLayout.set_fields('Virtual Machine', fields=[
     TextDyField.data_source('Resource ID', 'data.compute.instance_id'),
@@ -50,7 +50,7 @@ azure_vm = ListDynamicLayout.set_layouts('Azure VM', layouts=[virtual_machine, v
 disk = TableDynamicLayout.set_fields('Disk', root_path='disks', fields=[
     TextDyField.data_source('Index', 'device_index'),
     TextDyField.data_source('Name', 'tags.disk_name'),
-    TextDyField.data_source('Size(GiB)', 'size'),
+    SizeField.data_source('Size', 'size'),
     TextDyField.data_source('Disk ID', 'tags.disk_id'),
     TextDyField.data_source('Storage Account Type', 'tags.storage_Account_type'),
     TextDyField.data_source('IOPS', 'tags.iops'),

@@ -182,43 +182,40 @@ class AzureVmManager(BaseManager):
         return self.azure_vm_connector.list_virtual_machine_sizes(location)
 
     def get_os_distro(self, os_type, offer):
-        if offer:
+        if hasattr(offer, 'offer'):
             return self.extract_os_distro(os_type, offer.lower())
         else:
             return os_type.lower()
 
     @staticmethod
     def get_write_accelerator_enabled(os_disk):
-        if os_disk.write_accelerator_enabled:
+        if hasattr(os_disk.write_accelerator_enabled, 'os_disk.write_accelerator_enabled'):
             return os_disk.write_accelerator_enabled
-
         return False
 
     @staticmethod
     def get_boot_diagnostics(boot_diagnostics):
-        if boot_diagnostics.enabled:
+        if hasattr(boot_diagnostics.enabled, 'boot_diagnostics.enabled'):
             return boot_diagnostics.enabled
-
         return True
 
     @staticmethod
     def get_keypair(linux_configuration):
-        if linux_configuration.ssh:
+        if hasattr(linux_configuration, 'ssh'):
             key = linux_configuration.ssh.public_keys[0]
             return key.path.split('/')[2]
         return ""
 
     @staticmethod
     def get_ip_addresses(primary_ip):
-        ip_addresses = []
-        if primary_ip:
+        if hasattr(primary_ip, 'primary_ip'):
+            ip_addresses = []
             ip_addresses = list(primary_ip.keys())
-
-        return ip_addresses
+            return ip_addresses
 
     @staticmethod
     def get_primary_ip_address(primary_ip):
-        if primary_ip:
+        if hasattr(primary_ip, 'primary_ip'):
             for key, value in primary_ip.items():
                 if value:
                     return key

@@ -5,7 +5,6 @@
 
 **Azure VM Collector** collects Microsoft Azure VMs in user's subscription. You can check all VMs belonging to the resource group and subscription. In addition, associated services such as Load Balancer, Security Groups, NIC, Scale Sets are also displayed through Azure VM Collector.
 
-
 > SpaceONE's [plugin-azure-cloud-services](https://github.com/spaceone-dev/plugin-azure-vm) is a convenient tool to 
 get cloud service data from Microsoft Azure Cloud Services. 
 
@@ -34,6 +33,13 @@ You should insert information about account in SpaceONE's **Service Account** in
 ## CONTENTS
 The information collected for each VM is as follows.
 
+ * Virtual Machines
+    * Azure VM (Instance)
+    * Disk
+    * NIC
+    * Network Security Groups
+    * Load Balancer
+    
 
 ## Authentication Overview
 Registered service account on SpaceONE must have certain permissions to collect cloud service data 

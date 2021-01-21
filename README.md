@@ -15,7 +15,7 @@ Please contact us if you need any further information.
 <support@spaceone.dev>
 
 
-## SETTING
+## Setting
 You should insert information about account in SpaceONE's **Service Account** initially.
 * Base Information
 	* `name`
@@ -30,7 +30,7 @@ You should insert information about account in SpaceONE's **Service Account** in
 	* `Client ID`
 
 
-## CONTENTS
+## Contents
 The information collected for each VM is as follows.
 
  * Virtual Machines

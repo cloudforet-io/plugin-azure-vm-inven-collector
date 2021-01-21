@@ -34,14 +34,6 @@ You should insert information about account in SpaceONE's **Service Account** in
 ## CONTENTS
 The information collected for each VM is as follows.
 
-* Table of Contents
-    * [Virtual Machines](#Azure_VM_(Instance))
-        * [Azure VM (Instance)](#azure_vm_instance)
-        * [Disk](#disks)
-        * [NIC](#NIC)
-        * [Network Security Groups](#network_security_groups)
-        * [Load Balancer](#load_balancer)
-
 
 ## Authentication Overview
 Registered service account on SpaceONE must have certain permissions to collect cloud service data 

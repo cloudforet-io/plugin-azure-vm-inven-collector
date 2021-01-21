@@ -1,4 +1,4 @@
-# Azure VM Collector Plugin
+# plugin-azure-vm
 
 ![Microsoft Azure Cloud Services](https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-cloud-services.svg)
 **Plugin to collect Microsoft Azure Cloud Services**
@@ -39,7 +39,7 @@ The information collected for each VM is as follows.
     * NIC
     * Network Security Groups
     * Load Balancer
-    
+
 
 ## Authentication Overview
 Registered service account on SpaceONE must have certain permissions to collect cloud service data 

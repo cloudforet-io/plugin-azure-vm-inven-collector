@@ -1,10 +1,10 @@
 # Azure VM Collector Plugin
 
-## ABOUT
-**Azure VM Collector** collects Microsoft Azure VMs in user's subscription. You can check all VMs belonging to the resource group and subscription. In addition, associated services such as Load Balancer, Security Groups, NIC, Scale Sets are also displayed through Azure VM Collector.
-
 ![Microsoft Azure Cloud Services](https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-cloud-services.svg)
 **Plugin to collect Microsoft Azure Cloud Services**
+
+**Azure VM Collector** collects Microsoft Azure VMs in user's subscription. You can check all VMs belonging to the resource group and subscription. In addition, associated services such as Load Balancer, Security Groups, NIC, Scale Sets are also displayed through Azure VM Collector.
+
 
 > SpaceONE's [plugin-azure-cloud-services](https://github.com/spaceone-dev/plugin-azure-vm) is a convenient tool to 
 get cloud service data from Microsoft Azure Cloud Services. 
@@ -42,7 +42,6 @@ The information collected for each VM is as follows.
         * [Network Security Groups](#network_security_groups)
         * [Load Balancer](#load_balancer)
 
----
 
 ## Authentication Overview
 Registered service account on SpaceONE must have certain permissions to collect cloud service data 
@@ -65,21 +64,8 @@ Please, set authentication privilege for followings:
         - Microsoft.Compute/*/read
         - Microsoft.Resources/*/read
         - Microsoft.Network/networkInterfaces/read	
-        - Microsoft.Network/publicIPAddresses/read	
-
-- Disks
-    - Permissions
-        - Microsoft.Compute/disks/read	
-        
-- NIC
-    - Permissions
-        - Microsoft.Network/networkInterfaces/read	
-     
-- Network Security Groups
-    - Permissions
-        - Microsoft.Network/networkSecurityGroups/read	
-    
-- Load Balancer
-    - Permissions
+        - Microsoft.Network/publicIPAddresses/read
+        - Microsoft.Network/networkSecurityGroups/read
         - Microsoft.Network/loadBalancers/read
+	
 

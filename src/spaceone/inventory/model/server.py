@@ -12,6 +12,11 @@ class ReferenceModel(Model):
     external_link = StringType(required=False, serialize_when_none=False)
 
 
+class Tags(Model):
+    key = StringType(serialize_when_none=False)
+    value = StringType(serialize_when_none=False)
+
+
 class ServerData(Model):
     os = ModelType(OS)
     azure = ModelType(Azure)
@@ -31,6 +36,7 @@ class Server(Model):
     name = StringType()
     region_code = StringType()
     data = ModelType(ServerData)
+    tags = ModelType(Tags)
     nics = ListType(ModelType(NIC))
     disks = ListType(ModelType(Disk))
     primary_ip_address = StringType(default='')

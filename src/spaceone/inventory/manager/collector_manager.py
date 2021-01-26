@@ -129,7 +129,8 @@ class CollectorManager(BaseManager):
 
             server_data.update({
                 'disks': disk_vos,
-                'nics': nic_vos
+                'nics': nic_vos,
+                'tags': vm.tags
             })
 
             server_data['data'].update({

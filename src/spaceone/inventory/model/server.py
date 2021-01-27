@@ -36,7 +36,7 @@ class Server(Model):
     name = StringType()
     region_code = StringType()
     data = ModelType(ServerData)
-    tags = ModelType(Tags)
+    tags = ListType(ModelType(Tags))
     nics = ListType(ModelType(NIC))
     disks = ListType(ModelType(Disk))
     primary_ip_address = StringType(default='')

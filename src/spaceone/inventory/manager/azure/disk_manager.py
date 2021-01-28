@@ -56,7 +56,7 @@ class AzureDiskManager(BaseManager):
     def get_volume_data(self, disk, list_disks, index):
         volume_data = {
             'device_index': index,
-            'size': disk.disk_size_gb,
+            'size': disk.disk_size_gb * 1073741824,
             'tags': {
                 'disk_name': disk.name,
                 'caching': disk.caching,

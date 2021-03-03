@@ -129,7 +129,8 @@ class CollectorManager(BaseManager):
 
             server_data.update({
                 'disks': disk_vos,
-                'nics': nic_vos
+                'nics': nic_vos,
+                'tags': self.get_tags(vm.tags)
             })
 
             server_data['data'].update({
@@ -275,3 +276,15 @@ class CollectorManager(BaseManager):
             return Region(region_info, strict=False)
 
         return None
+
+    @staticmethod
+    def get_tags(tags):
+        tags_result = []
+        if tags:
+            for k, v in tags.items():
+                tags_result.append({
+                    'key': k,
+                    'value': v
+                })
+
+        return tags_result

@@ -60,7 +60,7 @@ FILTER_FORMAT = [
         'resource_type': 'CUSTOM'
     }
 ]
-
+SUPPORTED_FEATURES = ['garbage_collection']
 SUPPORTED_RESOURCE_TYPE = ['inventory.Server', 'inventory.Region']
 NUMBER_OF_CONCURRENT = 20
 SUPPORTED_SCHEDULES = ['hours']
@@ -79,7 +79,8 @@ class CollectorService(BaseService):
         capability = {
             'filter_format': FILTER_FORMAT,
             'supported_resource_type': SUPPORTED_RESOURCE_TYPE,
-            'supported_schedules':SUPPORTED_SCHEDULES
+            'supported_features': SUPPORTED_FEATURES,
+            'supported_schedules': SUPPORTED_SCHEDULES
         }
         return {'metadata': capability}
 

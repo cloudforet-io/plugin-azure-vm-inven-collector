@@ -159,7 +159,7 @@ class CollectorService(BaseService):
                                 resource_regions.append(collected_region)
                                 collected_region_code.append(collected_region.region_code)
 
-                        yield result, server_resource_format
+                            yield result, server_resource_format
 
                 except Exception as e:
                     _LOGGER.error(f'failed to result {e}')

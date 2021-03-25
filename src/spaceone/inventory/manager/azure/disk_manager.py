@@ -56,22 +56,25 @@ class AzureDiskManager(BaseManager):
     def get_volume_data(self, disk, list_disks, index):
         volume_data = {
             'device_index': index,
-            'size': disk.disk_size_gb * 1073741824,
+            'size': disk.disk_size_gb * 1073741824 if disk.disk_size_gb is not None else 0,
             'tags': {
-                'disk_name': disk.name,
-                'caching': disk.caching,
-                'storage_account_type': disk.managed_disk.storage_account_type,
-                'disk_encryption_set': self.get_disk_encryption(disk),
-                'disk_id': disk.managed_disk.id
+                'disk_name': disk.name if disk.name is not None else '',
+                'caching': disk.caching if disk.caching is not None else '',
             }
         }
+        if disk.managed_disk is not None:
+            encryption = self.get_disk_encryption(disk)
+            volume_data['tags'].update({'disk_encryption_set': encryption})
+            if disk.managed_disk.id is not None:
+                volume_data['tags'].update({'disk_id': disk.managed_disk.id})
+            if disk.managed_disk.storage_account_type is not None:
+                volume_data['tags'].update({'storage_account_type': disk.managed_disk.storage_account_type})
         disk = self.get_iops_bps(disk, list_disks)
         if disk:
             volume_data['tags'].update({
                 'iops': disk.disk_iops_read_write,
                 'throughput_mbps': disk.disk_m_bps_read_write
             })
-
         return volume_data
 
     @staticmethod

@@ -183,7 +183,11 @@ class CollectorManager(BaseManager):
         cloud_service_type = {
             'tags': {
                 'spaceone:icon': 'https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-vm.svg',
-            }
+            },
+            'is_major': True,
+            'is_primary': True,
+            'service_code': 'Microsoft.Compute/virtualMachines'
+
         }
         return [CloudServiceType(cloud_service_type, strict=False)]
 

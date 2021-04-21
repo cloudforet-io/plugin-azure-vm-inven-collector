@@ -44,7 +44,7 @@ class Server(Model):
     server_type = StringType(default='VM')
     os_type = StringType(choices=('LINUX', 'WINDOWS'))
     provider = StringType(default='azure')
-    cloud_service_type = StringType(default='VirtualMachines')
+    cloud_service_type = StringType(default='VirtualMachine')
     cloud_service_group = StringType(default='Compute')
     _metadata = ModelType(ServerMetadata, serialized_name='metadata')
     reference = ModelType(ReferenceModel)

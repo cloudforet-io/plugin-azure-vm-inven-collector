@@ -119,7 +119,8 @@ class CollectorManager(BaseManager):
             server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups,
                                                  vm_sizes, primary_ip)
 
-            lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
+            if load_balancers is not None:
+                lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
 
             nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups,
                                                                                      network_interfaces)

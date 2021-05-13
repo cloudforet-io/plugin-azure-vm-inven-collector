@@ -74,11 +74,13 @@ class AzureLoadBalancerManager(BaseManager):
 
         for vm_nic in vm_nics:
             for lb in load_balancers:
-                for be in lb.backend_address_pools:
-                    for ip_conf in be.backend_ip_configurations:
-                        nic_name = ip_conf.id.split('/')[-3]
-                        if nic_name == vm_nic:
-                            match_load_balancers.append(lb)
+                if lb.backend_address_pools is not None:
+                    for be in lb.backend_address_pools:
+                        if be.backend_ip_configurations is not None:
+                            for ip_conf in be.backend_ip_configurations:
+                                nic_name = ip_conf.id.split('/')[-3]
+                                if nic_name == vm_nic:
+                                    match_load_balancers.append(lb)
 
         return match_load_balancers
 

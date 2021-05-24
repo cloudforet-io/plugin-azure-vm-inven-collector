@@ -144,7 +144,8 @@ class AzureVmManager(BaseManager):
     def get_compute_data(self, vm, resource_group_name, network_security_groups, subscription_id):
         vm_info = self.azure_vm_connector.get_vm(resource_group_name, vm.name)
         compute_data = {
-            'keypair': self.get_keypair(vm.os_profile.linux_configuration),
+            # 'keypair': self.get_keypair(vm.os_profile.linux_configuration),
+            'keypair': '',  # TODO: not implemented yet
             'instance_state': self.get_instance_state(vm_info.instance_view.statuses),
             'instance_type': vm.hardware_profile.vm_size,
             'launched_at': self.get_launched_time(vm_info.instance_view.statuses),
@@ -170,22 +171,24 @@ class AzureVmManager(BaseManager):
 
     def get_azure_data(self, vm):
         azure_data = {
-            'boot_diagnostics': self.get_boot_diagnostics(vm.diagnostics_profile.boot_diagnostics),
             'ultra_ssd_enabled': self.get_ultra_ssd_enabled(vm.additional_capabilities),
             'write_accelerator_enabled': self.get_write_accelerator_enabled(vm.storage_profile.os_disk),
             'priority': self.get_vm_priority(vm),
             'tags': self.get_tags(vm.tags)
         }
+
+        if getattr(vm, 'diagnostics_profile') and getattr(vm.diagnostics_profile, "boot_diagnostics") and vm.diagnostics_profile.boot_diagnostics:
+            azure_data.update({
+                'boot_diagnostics': self.get_boot_diagnostics(vm.diagnostics_profile.boot_diagnostics)
+            })
+
         return Azure(azure_data, strict=False)
 
     def get_vm_size(self, location):
         return self.azure_vm_connector.list_virtual_machine_sizes(location)
 
     def get_os_distro(self, os_type, offer):
-        if hasattr(offer, 'offer'):
-            return self.extract_os_distro(os_type, offer.lower())
-        else:
-            return os_type.lower()
+        return self.extract_os_distro(os_type, offer)
 
     @staticmethod
     def get_write_accelerator_enabled(os_disk):
@@ -203,6 +206,7 @@ class AzureVmManager(BaseManager):
     def get_keypair(linux_configuration):
         if hasattr(linux_configuration, 'ssh') and linux_configuration.ssh:
             key = linux_configuration.ssh.public_keys[0]
+
             return key.path.split('/')[2]
         return ""
 
@@ -245,6 +249,10 @@ class AzureVmManager(BaseManager):
     def get_security_groups(vm_network_interfaces, network_security_groups):
         security_groups = []
         nic_names = []
+
+        if vm_network_interfaces is None:
+            vm_network_interfaces = []
+
         for vm_nic in vm_network_interfaces:
             nic_name = vm_nic.id.split('/')[-1]
             nic_names.append(nic_name)
@@ -270,6 +278,9 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_launched_time(statuses):
+        if statuses is None:
+            statuses = []
+
         for status in statuses:
             if status.display_status == 'Provisioning succeeded':
                 return status.time.isoformat()
@@ -278,8 +289,11 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_instance_state(statuses):
-        if statuses:
-            return statuses[-1].display_status.split(' ')[-1].upper()
+        try:
+            if statuses:
+                return statuses[-1].code.split('/')[-1].upper()
+        except Exception:
+            pass
 
         return None
 
@@ -304,6 +318,8 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def extract_os_distro(os_type, offer):
+        offer.lower()
+
         if os_type == 'LINUX':
             os_map = {
                 'suse': 'suse',
@@ -318,7 +334,6 @@ class AzureVmManager(BaseManager):
                 'debian': 'debian'
             }
 
-            offer.lower()
             for key in os_map:
                 if key in offer:
                     return os_map[key]
@@ -357,10 +372,10 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_image_detail(location, image_reference, subscription_id):
-        publisher = image_reference.publisher
-        offer = image_reference.offer
-        sku = image_reference.sku
-        version = image_reference.exact_version
+        publisher = getattr(image_reference, "publisher")
+        offer = getattr(image_reference, "offer")
+        sku = getattr(image_reference, "sku")
+        version = getattr(image_reference, "exact_version")
 
         if publisher and offer and sku and version:
             image_detail = f'/Subscriptions/{subscription_id}/Providers/Microsoft.Compute/Locations/{location}' \

@@ -62,27 +62,34 @@ class AzureDiskManager(BaseManager):
                 'caching': disk.caching if disk.caching is not None else '',
             }
         }
-        if disk.managed_disk is not None:
+
+        if getattr(disk, 'managed_disk') and disk.managed_disk is not None:
             encryption = self.get_disk_encryption(disk)
             volume_data['tags'].update({'disk_encryption_set': encryption})
             if disk.managed_disk.id is not None:
                 volume_data['tags'].update({'disk_id': disk.managed_disk.id})
             if disk.managed_disk.storage_account_type is not None:
                 volume_data['tags'].update({'storage_account_type': disk.managed_disk.storage_account_type})
-        disk = self.get_iops_bps(disk, list_disks)
-        if disk:
+
+        map_disk = self.get_mapping_disk_info(disk, list_disks)
+
+        if map_disk:
             volume_data['tags'].update({
-                'iops': disk.disk_iops_read_write,
-                'throughput_mbps': disk.disk_m_bps_read_write
+                'iops': map_disk.disk_iops_read_write,
+                'throughput_mbps': map_disk.disk_m_bps_read_write
             })
         return volume_data
 
     @staticmethod
-    def get_iops_bps(disk, list_disks):
-        disk_name = disk.managed_disk.id.split('/')[-1]
-        for disk_info in list_disks:
-            if disk_info.name == disk_name:
-                return disk_info
+    def get_mapping_disk_info(disk, list_disks):
+        if list_disks:
+            list_disks = []
+
+        if getattr(disk, 'managed_disk') and disk.managed_disk:
+            disk_name = disk.managed_disk.id.split('/')[-1]
+            for disk_info in list_disks:
+                if disk_info.name == disk_name:
+                    return disk_info
 
         return None
 

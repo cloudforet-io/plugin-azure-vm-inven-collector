@@ -33,7 +33,12 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         nsg_data = []
 
         network_security_groups_data = []
-        vm_network_interfaces = vm.network_profile.network_interfaces
+
+        if getattr(vm.network_profile, 'network_interfaces') and vm.network_profile.network_interfaces:
+            vm_network_interfaces = vm.network_profile.network_interfaces
+        else:
+            vm_network_interfaces = []
+
         match_network_security_groups = self.get_network_security_group_from_nic(vm_network_interfaces,
                                                                                  network_interfaces,
                                                                                  network_security_groups)
@@ -92,12 +97,13 @@ class AzureNetworkSecurityGroupManager(BaseManager):
             vm_nic_name = vm_nic.id.split('/')[-1]
             for nic in network_interfaces:
                 if vm_nic_name == nic.name:
-                    nsg_name = nic.network_security_group.id.split('/')[-1]
-                    for nsg in network_security_groups:
-                        if nsg.name == nsg_name:
-                            nsgs.append(nsg)
-                            break
-                    break
+                    if getattr(nic, 'network_security_group') and nic.network_security_group:
+                        nsg_name = nic.network_security_group.id.split('/')[-1]
+                        for nsg in network_security_groups:
+                            if nsg.name == nsg_name:
+                                nsgs.append(nsg)
+                                break
+                        break
 
         return nsgs
 
@@ -123,16 +129,18 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         else:
             address_prefixes = s_rule.source_address_prefixes
             remote = ''
-            for prfx in address_prefixes:
-                remote += prfx
-                remote += ', '
 
-            remote = remote[:-2]
+            if address_prefixes:
+                for prfx in address_prefixes:
+                    remote += prfx
+                    remote += ', '
 
-            remote_result.update({
-                'remote': remote,
-                'remote_cidr': remote
-            })
+                remote = remote[:-2]
+
+                remote_result.update({
+                    'remote': remote,
+                    'remote_cidr': remote
+                })
 
         if len(remote_result) > 0:
             return remote_result
@@ -142,7 +150,8 @@ class AzureNetworkSecurityGroupManager(BaseManager):
     @staticmethod
     def get_nsg_port(s_rule):
         port_result = {}
-        if s_rule.destination_port_range is not None:
+
+        if getattr(s_rule, 'destination_port_range') and s_rule.destination_port_range is not None:
             if '-' in s_rule.destination_port_range:
                 port_min = s_rule.destination_port_range.split('-')[0]
                 port_max = s_rule.destination_port_range.split('-')[1]
@@ -164,26 +173,28 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                     'port': s_rule.destination_port_range
                 })
         else:
-            port_ranges = s_rule.destination_port_ranges
-            port_min = int(port_ranges[0])
-            port_max = int(port_ranges[0])
-            all_port = ''
-            for port in port_ranges:
-                if int(port.split('-')[0]) < port_min:
-                    port_min = int(port.split('-')[0])
-                if int(port.split('-')[-1]) > port_max:
-                    port_max = int(port.split('-')[1])
+            if getattr(s_rule, "destination_port_ranges") and s_rule.destination_port_ranges:
+                port_ranges = s_rule.destination_port_ranges
 
-                all_port += port
-                all_port += ', '
+                port_min = int(port_ranges[0])
+                port_max = int(port_ranges[0])
+                all_port = ''
+                for port in port_ranges:
+                    if int(port.split('-')[0]) < port_min:
+                        port_min = int(port.split('-')[0])
+                    if int(port.split('-')[-1]) > port_max:
+                        port_max = int(port.split('-')[1])
 
-            all_port = all_port[:-2]
+                    all_port += port
+                    all_port += ', '
 
-            port_result.update({
-                'port_range_min': port_min,
-                'port_range_max': port_max,
-                'port': all_port
-            })
+                all_port = all_port[:-2]
+
+                port_result.update({
+                    'port_range_min': port_min,
+                    'port_range_max': port_max,
+                    'port': all_port
+                })
 
         if len(port_result) > 0:
             return port_result

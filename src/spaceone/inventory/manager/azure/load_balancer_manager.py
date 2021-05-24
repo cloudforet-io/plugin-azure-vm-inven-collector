@@ -53,6 +53,12 @@ class AzureLoadBalancerManager(BaseManager):
     def get_lb_endpoint(self, match_load_balancer, public_ip_addresses):
         frontend_ip_configurations = match_load_balancer.frontend_ip_configurations
 
+        if public_ip_addresses:
+            public_ip_addresses = []
+
+        if frontend_ip_configurations:
+            frontend_ip_configurations = []
+
         if self.get_lb_scheme(match_load_balancer) == 'internet-facing':
             for ip in frontend_ip_configurations:
                 public_ip_address_name = ip.public_ip_address.id.split('/')[-1]
@@ -64,9 +70,17 @@ class AzureLoadBalancerManager(BaseManager):
             for ip in frontend_ip_configurations:
                 return ip.private_ip_address
 
+        return ''
+
     @staticmethod
     def get_load_balancers_from_nic(network_interfaces, load_balancers):
         match_load_balancers = []
+
+        if network_interfaces:
+            network_interfaces = []
+
+        if load_balancers:
+            load_balancers = []
 
         vm_nics = []
         for nic in network_interfaces:
@@ -74,9 +88,9 @@ class AzureLoadBalancerManager(BaseManager):
 
         for vm_nic in vm_nics:
             for lb in load_balancers:
-                if lb.backend_address_pools is not None:
+                if lb.backend_address_pools:
                     for be in lb.backend_address_pools:
-                        if be.backend_ip_configurations is not None:
+                        if be.backend_ip_configurations:
                             for ip_conf in be.backend_ip_configurations:
                                 nic_name = ip_conf.id.split('/')[-3]
                                 if nic_name == vm_nic:

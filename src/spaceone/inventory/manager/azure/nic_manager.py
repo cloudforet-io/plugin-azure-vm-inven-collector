@@ -32,15 +32,21 @@ class AzureNICManager(BaseManager):
         index = 0
 
         vm_network_interfaces = vm.network_profile.network_interfaces
+
+        if vm_network_interfaces is None:
+            vm_network_interfaces = []
+
         match_network_interfaces = self.get_network_interfaces(vm_network_interfaces, network_interfaces)
 
         for vm_nic in match_network_interfaces:
+            ip_configurations = self.get_ip_configurations(vm_nic)
+
             network_data = {
                 'device_index': index,
-                'cidr': self.get_nic_cidr(self.get_ip_configurations(vm_nic), virtual_networks),
-                'ip_addresses': self.get_nic_ip_addresses(self.get_ip_configurations(vm_nic)),
+                'cidr': self.get_nic_cidr(ip_configurations, virtual_networks),
+                'ip_addresses': self.get_nic_ip_addresses(ip_configurations),
                 'mac_address': vm_nic.mac_address,
-                'public_ip_address': self.get_nic_public_ip_addresses(self.get_ip_configurations(vm_nic),
+                'public_ip_address': self.get_nic_public_ip_addresses(ip_configurations,
                                                                       public_ip_addresses),
                 'tags': self.get_tags(vm_nic)
             }
@@ -55,7 +61,7 @@ class AzureNICManager(BaseManager):
     @staticmethod
     def get_nic_public_ip_addresses(ip_configurations, public_ip_addresses):
         for ip_conf in ip_configurations:
-            if ip_conf.public_ip_address:
+            if getattr(ip_conf, 'public_ip_address') and ip_conf.public_ip_address:
                 ip_name = ip_conf.public_ip_address.id.split('/')[-1]
                 for pub_ip in public_ip_addresses:
                     if ip_name == pub_ip.name:
@@ -98,20 +104,20 @@ class AzureNICManager(BaseManager):
     @staticmethod
     def get_ip_configurations(vm_nic):
         result = []
-        for ip in vm_nic.ip_configurations:
-            result.append(ip)
+        if getattr(vm_nic, 'ip_configurations') and vm_nic.ip_configurations:
+            for ip in vm_nic.ip_configurations:
+                result.append(ip)
 
         return result
 
     @staticmethod
     def get_tags(vm_nic):
-        tag_info = {}
-        tag_info.update({'name': vm_nic.name})
-        tag_info.update({'etag': vm_nic.etag})
-        tag_info.update({'enable_accelerated_networking': vm_nic.enable_accelerated_networking})
-        tag_info.update({'enable_ip_forwarding': vm_nic.enable_ip_forwarding})
-
-        return tag_info
+        return {
+            'name': vm_nic.name,
+            'etag': vm_nic.etag,
+            'enable_accelerated_networking': vm_nic.enable_accelerated_networking,
+            'enable_ip_forwarding': vm_nic.enable_ip_forwarding
+        }
 
     @staticmethod
     def get_network_interfaces(vm_network_interfaces, network_interfaces):

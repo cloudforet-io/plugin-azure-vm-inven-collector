@@ -81,7 +81,7 @@ security_group = TableDynamicLayout.set_fields('Network Security Groups', root_p
     }),
     TextDyField.data_source('Name', 'security_group_name'),
     EnumDyField.data_source('Protocol', 'protocol', default_outline_badge=['ALL', 'TCP', 'UDP', 'ICMP']),
-    TextDyField.data_source('Port Rage', 'port'),
+    TextDyField.data_source('Port Range', 'port'),
     TextDyField.data_source('Remote', 'remote'),
     TextDyField.data_source('Priority', 'priority'),
     EnumDyField.data_source('Action', 'action', default_badge={

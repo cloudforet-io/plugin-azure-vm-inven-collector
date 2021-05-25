@@ -15,7 +15,6 @@ from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.cloud_service_type import CloudServiceType
 from spaceone.inventory.model.monitor import Monitor
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -126,7 +125,20 @@ class CollectorManager(BaseManager):
                                                                                      network_interfaces)
 
             nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
-            vnet_data, subnet_data = vnet_manager.get_vnet_subnet_info(nic_name, network_interfaces, virtual_networks)
+
+            if nic_name is not None:
+                # vnet_data, subnet_data = vnet_manager.get_vnet_info(nic_name, network_interfaces, virtual_networks)
+                vnet_subnet_dict = vnet_manager.get_vnet_subnet_info(nic_name, network_interfaces, virtual_networks)
+
+                if vnet_subnet_dict.get('vnet_info'):
+                    vnet_data = vnet_subnet_dict['vnet_info']
+                else:
+                    vnet_data = None
+
+                if vnet_subnet_dict.get('subnet_info'):
+                    subnet_data = vnet_subnet_dict['subnet_info']
+                else:
+                    subnet_data = None
 
             server_data.update({
                 'disks': disk_vos,

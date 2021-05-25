@@ -13,25 +13,31 @@ class AzureVNetManager(BaseManager):
 
     def get_vnet_subnet_info(self, nic_name, network_interfaces, virtual_networks):
         '''
-        vnet_subnet_data = {
-            "vnet_data": vnet_data,
-            "subnet_data": subnet_data
+        vnet_subnet_dict = {
+            "vnet_info": vnet_data,
+            "subnet_info": subnet_data
         }
         '''
+        vnet_info_dict = {}
 
         for nic in network_interfaces:
             if nic.name == nic_name:
                 vnet_name = nic.ip_configurations[0].subnet.id.split('/')[-3]
-                break
 
-        for vnet in virtual_networks:
-            if vnet.name == vnet_name:
-                return self.get_vnet_info(vnet), self.get_subnet_info(vnet.subnets[0])
+        if vnet_name is not None and len(virtual_networks) > 0:
+            for vnet in virtual_networks:
+                if vnet.name == vnet_name:
+                    subnet_info = self.convert_subnet_info(vnet.subnets[0])  # Get attached subnets
+                    vnet_info = self.convert_vnet_info(vnet)
+                    if subnet_info is not None:
+                        vnet_info_dict['subnet_info'] = subnet_info
+                    if vnet_info is not None:
+                        vnet_info_dict['vnet_info'] = vnet_info
 
-        return None
+        return vnet_info_dict
 
     @staticmethod
-    def get_vnet_info(vnet):
+    def convert_vnet_info(vnet):
         '''
         vnet_data = {
             "vnet_id" = "",
@@ -49,7 +55,7 @@ class AzureVNetManager(BaseManager):
         return VNet(vnet_data, strict=False)
 
     @staticmethod
-    def get_subnet_info(subnet):
+    def convert_subnet_info(subnet):
         '''
         subnet_data = {
             "subnet_name": "",

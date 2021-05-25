@@ -175,11 +175,14 @@ class AzureNetworkSecurityGroupManager(BaseManager):
         else:
             if getattr(s_rule, "destination_port_ranges") and s_rule.destination_port_ranges:
                 port_ranges = s_rule.destination_port_ranges
+                if not port_ranges:
+                    port_ranges = []
 
-                port_min = int(port_ranges[0])
-                port_max = int(port_ranges[0])
+                port_min = 0
+                port_max = 0
                 all_port = ''
                 ports = []
+
                 for port in port_ranges:
                     if '-' in port:  # ex. ['33-55']
                         for i in port.split('-'):
@@ -188,8 +191,10 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                         ports.append(port)
 
                     ports = list(map(int, ports))  # Change to int list
-                    port_min = min(ports)
-                    port_max = max(ports)
+
+                    if ports:
+                        port_min = min(ports)
+                        port_max = max(ports)
 
                     all_port = ", ".join(map(str, ports))  # Update string
 

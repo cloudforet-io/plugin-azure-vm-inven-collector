@@ -179,16 +179,19 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                 port_min = int(port_ranges[0])
                 port_max = int(port_ranges[0])
                 all_port = ''
-                if len(port_ranges) > 1:  # Destination port is provided as multiple port ranges
-                    for port in port_ranges:
-                        if int(port.split('-')[0]) < port_min:
-                            port_min = int(port.split('-')[0])
-                        if int(port.split('-')[-1]) > port_max:
-                            port_max = int(port.split('-')[1])
+                ports = []
+                for port in port_ranges:
+                    if '-' in port:  # ex. ['33-55']
+                        for i in port.split('-'):
+                            ports.append(i)
+                    else:  # ex. ['8080']
+                        ports.append(port)
 
-                    all_port = ', '.join(port_ranges)
-                else:  # Destination port is provided as a single port range
-                    port_min, port_max = int(port_ranges[0])
+                    ports = list(map(int, ports))  # Change to int list
+                    port_min = min(ports)
+                    port_max = max(ports)
+
+                    all_port = ", ".join(map(str, ports))  # Update string
 
                 port_result.update({
                     'port_range_min': port_min,

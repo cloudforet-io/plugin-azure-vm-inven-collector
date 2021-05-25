@@ -204,9 +204,6 @@ class AzureNetworkSecurityGroupManager(BaseManager):
                     'port': all_port
                 })
 
-                print("####")
-                print(port_result)
-
         if len(port_result) > 0:
             return port_result
 

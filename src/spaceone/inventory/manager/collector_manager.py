@@ -15,6 +15,7 @@ from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.cloud_service_type import CloudServiceType
 from spaceone.inventory.model.monitor import Monitor
 
+
 _LOGGER = logging.getLogger(__name__)
 
 

@@ -105,12 +105,25 @@ class AzureVmManager(BaseManager):
         return vm_data
 
     def get_os_data(self, vm_storage_profile):
-        os_data = {
-            'os_distro': self.get_os_distro(self.get_os_type(vm_storage_profile.os_disk),
-                                            vm_storage_profile.image_reference.offer),
-            'details': self.get_os_details(vm_storage_profile.image_reference)
-        }
-        return OS(os_data, strict=False)
+        if vm_storage_profile.image_reference is not None:
+            try:
+                os_type = self.get_os_type(vm_storage_profile.os_disk)
+                image_reference = vm_storage_profile.image_reference
+                offer = vm_storage_profile.image_reference.offer
+
+                if os_type and offer is not None:
+                    try:
+                        os_data = {
+                            'os_distro': self.get_os_distro(os_type, offer),
+                            'details': self.get_os_details(image_reference)
+                        }
+                        return OS(os_data, strict=False)
+
+                    except Exception as e:
+                        print(f'[ERROR: GET OS Distro Data]: {e}')
+
+            except Exception as e:
+                print(f'[ERROR: GET OS Data]: {e}')
 
     def get_hardware_data(self, vm, vm_sizes):
         """
@@ -314,49 +327,55 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_os_type(os_disk):
-        return os_disk.os_type.upper()
+        if os_disk.os_type is not None:
+            return os_disk.os_type.upper()
 
     @staticmethod
     def extract_os_distro(os_type, offer):
-        offer.lower()
+        if offer is not None and os_type is not None:
+            try:
+                offer.lower()
 
-        if os_type == 'LINUX':
-            os_map = {
-                'suse': 'suse',
-                'rhel': 'redhat',
-                'centos': 'centos',
-                'cent': 'centos',
-                'fedora': 'fedora',
-                'ubuntu': 'ubuntu',
-                'ubuntuserver': 'ubuntu',
-                'oracle': 'oraclelinux',
-                'oraclelinux': 'oraclelinux',
-                'debian': 'debian'
-            }
+                if os_type == 'LINUX':
+                    os_map = {
+                        'suse': 'suse',
+                        'rhel': 'redhat',
+                        'centos': 'centos',
+                        'cent': 'centos',
+                        'fedora': 'fedora',
+                        'ubuntu': 'ubuntu',
+                        'ubuntuserver': 'ubuntu',
+                        'oracle': 'oraclelinux',
+                        'oraclelinux': 'oraclelinux',
+                        'debian': 'debian'
+                    }
 
-            for key in os_map:
-                if key in offer:
-                    return os_map[key]
+                    for key in os_map:
+                        if key in offer:
+                            return os_map[key]
 
-            return 'linux'
+                    return 'linux'
 
-        elif os_type == 'WINDOWS':
-            os_distro_string = None
-            offer_splits = offer.split('-')
+                elif os_type == 'WINDOWS':
+                    os_distro_string = None
+                    offer_splits = offer.split('-')
 
-            version_cmps = ['2016', '2019', '2012']
+                    version_cmps = ['2016', '2019', '2012']
 
-            for cmp in version_cmps:
-                if cmp in offer_splits:
-                    os_distro_string = f'win{cmp}'
+                    for cmp in version_cmps:
+                        if cmp in offer_splits:
+                            os_distro_string = f'win{cmp}'
 
-            if os_distro_string is not None and 'R2_RTM' in offer_splits:
-                os_distro_string = f'{os_distro_string}r2'
+                    if os_distro_string is not None and 'R2_RTM' in offer_splits:
+                        os_distro_string = f'{os_distro_string}r2'
 
-            if os_distro_string is None:
-                os_distro_string = 'windows'
+                    if os_distro_string is None:
+                        os_distro_string = 'windows'
 
-            return os_distro_string
+                    return os_distro_string
+
+            except Exception as e:
+                print(f'[ERROR: Cannot extract os distro info]: {e}')
 
     @staticmethod
     def get_os_details(image_reference):

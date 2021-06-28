@@ -117,13 +117,13 @@ class AzureVmManager(BaseManager):
                             'os_distro': self.get_os_distro(os_type, offer),
                             'details': self.get_os_details(image_reference)
                         }
+                        return OS(os_data, strict=False)
+
                     except Exception as e:
                         print(f'[ERROR: GET OS Distro Data]: {e}')
 
             except Exception as e:
                 print(f'[ERROR: GET OS Data]: {e}')
-
-        return OS(os_data, strict=False)
 
     def get_hardware_data(self, vm, vm_sizes):
         """

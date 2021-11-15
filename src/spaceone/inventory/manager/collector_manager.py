@@ -2,7 +2,7 @@ __all__ = ['CollectorManager']
 
 import time
 import logging
-import pprint
+import json
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.connector import AzureVMConnector
 from spaceone.inventory.manager.azure import AzureDiskManager, AzureLoadBalancerManager, \
@@ -14,7 +14,7 @@ from spaceone.inventory.model.region import Region
 from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.cloud_service_type import CloudServiceType
 from spaceone.inventory.model.monitor import Monitor
-
+from spaceone.inventory.model.resource import ErrorResourceResponse, ServerResourceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,7 +54,9 @@ class CollectorManager(BaseManager):
         return vms
 
     def list_all_resources(self, params):
-        server_vos = []
+        servers = []
+        errors = []
+
         azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
         azure_vm_connector.set_connect(params['secret_data'])
 
@@ -111,66 +113,75 @@ class CollectorManager(BaseManager):
         vm_sizes = []
 
         for vm in vms:
-            disk_vos = disk_manager.get_disk_info(vm, list_disks)
+            try:
+                disk_vos = disk_manager.get_disk_info(vm, list_disks)
+                nic_vos, primary_ip = nic_manager.get_nic_info(vm, network_interfaces, public_ip_addresses,
+                                                               virtual_networks)
 
-            nic_vos, primary_ip = nic_manager.get_nic_info(vm, network_interfaces, public_ip_addresses,
-                                                           virtual_networks)
+                server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups,
+                                                     vm_sizes, primary_ip)
 
-            server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups,
-                                                 vm_sizes, primary_ip)
+                if load_balancers is not None:
+                    lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
 
-            if load_balancers is not None:
-                lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
+                nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups,
+                                                                                         network_interfaces)
 
-            nsg_vos = network_security_group_manager.get_network_security_group_info(vm, network_security_groups,
-                                                                                     network_interfaces)
+                nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
 
-            nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
+                if nic_name is not None:
+                    # vnet_data, subnet_data = vnet_manager.get_vnet_info(nic_name, network_interfaces, virtual_networks)
+                    vnet_subnet_dict = vnet_manager.get_vnet_subnet_info(nic_name, network_interfaces, virtual_networks)
 
-            if nic_name is not None:
-                # vnet_data, subnet_data = vnet_manager.get_vnet_info(nic_name, network_interfaces, virtual_networks)
-                vnet_subnet_dict = vnet_manager.get_vnet_subnet_info(nic_name, network_interfaces, virtual_networks)
+                    if vnet_subnet_dict.get('vnet_info'):
+                        vnet_data = vnet_subnet_dict['vnet_info']
+                    else:
+                        vnet_data = None
 
-                if vnet_subnet_dict.get('vnet_info'):
-                    vnet_data = vnet_subnet_dict['vnet_info']
-                else:
-                    vnet_data = None
+                    if vnet_subnet_dict.get('subnet_info'):
+                        subnet_data = vnet_subnet_dict['subnet_info']
+                    else:
+                        subnet_data = None
 
-                if vnet_subnet_dict.get('subnet_info'):
-                    subnet_data = vnet_subnet_dict['subnet_info']
-                else:
-                    subnet_data = None
-
-            server_data.update({
-                'disks': disk_vos,
-                'nics': nic_vos,
-                'tags': self.get_tags(vm.tags)
-            })
-
-            server_data['data'].update({
-                'load_balancer': lb_vos,
-                'security_group': nsg_vos,
-                'vnet': vnet_data,
-                'subnet': subnet_data,
-                'subscription': Subscription(subscription_data, strict=False),
-                'azure_monitor': Monitor({
-                    'resource_id': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
-                }, strict=False)
-            })
-
-            server_data['data']['compute']['account'] = subscription_data['subscription_name']
-
-            server_data.update({
-                '_metadata': meta_manager.get_metadata(),
-                'reference': ReferenceModel({
-                    'resource_id': server_data['data']['compute']['instance_id'],
-                    'external_link': f"https://portal.azure.com/#@.onmicrosoft.com/resource/subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data['data']['compute']['instance_name']}/overview"
+                server_data.update({
+                    'disks': disk_vos,
+                    'nics': nic_vos,
+                    'tags': self.get_tags(vm.tags)
                 })
-            })
 
-            server_vos.append(Server(server_data, strict=False))
+                server_data['data'].update({
+                    'load_balancer': lb_vos,
+                    'security_group': nsg_vos,
+                    'vnet': vnet_data,
+                    'subnet': subnet_data,
+                    'subscription': Subscription(subscription_data, strict=False),
+                    'azure_monitor': Monitor({
+                        'resource_id': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
+                    }, strict=False)
+                })
 
-        return server_vos
+                server_data['data']['compute']['account'] = subscription_data['subscription_name']
+
+                server_data.update({
+                    '_metadata': meta_manager.get_metadata(),
+                    'reference': ReferenceModel({
+                        'resource_id': server_data['data']['compute']['instance_id'],
+                        'external_link': f"https://portal.azure.com/#@.onmicrosoft.com/resource/subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data['data']['compute']['instance_name']}/overview"
+                    })
+                })
+                server_resource = Server(server_data, strict=False)
+                servers.append(ServerResourceResponse({'resource': server_resource}))
+            except Exception as e:
+                _LOGGER.error(f'[list_instances] [{vm.id}] {e}')
+
+                if type(e) is dict:
+                    error_resource_response = ErrorResourceResponse({'message': json.dumps(e)})
+                else:
+                    error_resource_response = ErrorResourceResponse({'message': str(e), 'resource': {'resource_id': vm.id}})
+
+                errors.append(error_resource_response)
+
+        return servers, errors
 
     def list_resources(self, params):
         """ Get list of resources
@@ -182,15 +193,26 @@ class CollectorManager(BaseManager):
         Returns: list of resources
         """
         start_time = time.time()
+        total_resources = []
 
         try:
-            resources = self.list_all_resources(params)
-            print(f'   [{params["resource_group"].name}] Finished {time.time() - start_time} Seconds')
-            return resources
+            resources, error_resources = self.list_all_resources(params)
+            total_resources.extend(resources)
+            total_resources.extend(error_resources)
+            _LOGGER.debug(f'[{params["resource_group"].name}] Finished {time.time() - start_time} Seconds')
+
+            return total_resources
 
         except Exception as e:
-            print(f'[ERROR: {params["resource_group"].name}] : {e}')
-            raise e
+            _LOGGER.debug(f'[list_resources]: {params["resource_group"].name}] : {e}')
+
+            if type(e) is dict:
+                error_resource_response = ErrorResourceResponse({'message': json.dumps(e)})
+            else:
+                error_resource_response = ErrorResourceResponse({'message': str(e)})
+
+            total_resources.append(error_resource_response)
+            return total_resources
 
     @staticmethod
     def list_cloud_service_types():

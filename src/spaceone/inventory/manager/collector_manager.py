@@ -303,16 +303,17 @@ class CollectorManager(BaseManager):
                             'tags': {'latitude': '-23.55', 'longitude': '-46.633'}},
             'brazilsoutheast': {'name': 'South America Brazil South East (Rio)',
                                 'tags': {'latitude': '-22.90278', 'longitude': '-43.2075'}},
+            'swedencentral': {'name': 'Sweden Central', 'tags': {'latitude': '60.67488', 'longitude': '17.14127'}}
+
         }
 
-        match_region_info = REGION_INFO.get(getattr(result, 'region_code', None))
+        match_region_info = REGION_INFO.get(getattr(result.data.compute, 'az', None))
 
         if match_region_info:
             region_info = match_region_info.copy()
             region_info.update({
                 'region_code': result.region_code
             })
-
             return Region(region_info, strict=False)
 
         return None

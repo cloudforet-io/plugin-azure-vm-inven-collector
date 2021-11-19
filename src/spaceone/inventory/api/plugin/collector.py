@@ -31,17 +31,9 @@ class Collector(BaseAPI, collector_pb2_grpc.CollectorServicer):
         params, metadata = self.parse_request(request, context)
 
         with self.locator.get_service('CollectorService', metadata) as collector_svc:
-            for resource, resource_format in collector_svc.list_resources(params):
+            for resource in collector_svc.collect(params):
                 # print("----------- RESULT ---------")
                 # print(resource.to_primitive())
                 # print()
 
-                res = {
-                    'state': 'SUCCESS',
-                    'message': '',
-                    'resource_type': resource_format['resource_type'],
-                    'match_rules': change_struct_type(resource_format['match_rules']),
-                    'resource': change_struct_type(resource.to_primitive())
-                }
-
-                yield self.locator.get_info('ResourceInfo', res)
+                yield self.locator.get_info('ResourceInfo', resource.to_primitive())

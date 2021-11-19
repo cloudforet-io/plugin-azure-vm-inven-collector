@@ -1,9 +1,11 @@
 import time
 import logging
 import concurrent.futures
+import json
 
 from spaceone.core.service import *
 from spaceone.inventory.manager.collector_manager import CollectorManager
+from spaceone.inventory.model.resource import CloudServiceTypeResourceResponse, ServerResourceResponse, RegionResourceResponse, ErrorResourceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ SUPPORTED_RESOURCE_TYPE = ['inventory.Server', 'inventory.Region']
 NUMBER_OF_CONCURRENT = 20
 SUPPORTED_SCHEDULES = ['hours']
 
+
 @authentication_handler
 class CollectorService(BaseService):
     def __init__(self, metadata):
@@ -107,7 +110,7 @@ class CollectorService(BaseService):
 
     @transaction
     @check_required(['options', 'secret_data', 'filter'])
-    def list_resources(self, params):
+    def collect(self, params):
         """ Get quick list of resources
         Args:
             params:
@@ -121,15 +124,8 @@ class CollectorService(BaseService):
         resource_regions = []
         collected_region_code = []
 
-        server_resource_format = {'resource_type': 'inventory.Server',
-                                  'match_rules': {'1': ['reference.resource_id']}}
-        region_resource_format = {'resource_type': 'inventory.Region',
-                                  'match_rules': {'1': ['region_code', 'provider']}}
-        cloud_service_type_resource_format = {'resource_type': 'inventory.CloudServiceType',
-                                              'match_rules': {'1': ['name', 'group', 'provider']}}
-
         for cloud_service_type in self.collector_manager.list_cloud_service_types():
-            yield cloud_service_type, cloud_service_type_resource_format
+            yield CloudServiceTypeResourceResponse({'resource': cloud_service_type})
 
         resource_groups = self.collector_manager.list_all_resource_groups(params)
 
@@ -143,7 +139,7 @@ class CollectorService(BaseService):
                     'resource_group': rg,
                     'vms': vms
                 })
-
+        '''
         if mt_params:
             for mt_param in mt_params:
                 results = self.collector_manager.list_resources(mt_param)
@@ -159,8 +155,6 @@ class CollectorService(BaseService):
 
                 for resource_region in resource_regions:
                     yield resource_region, region_resource_format
-
-
         '''
         if mt_params:
             with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CONCURRENT) as executor:
@@ -171,19 +165,36 @@ class CollectorService(BaseService):
                 try:
                     for future in concurrent.futures.as_completed(future_executors):
                         for result in future.result():
-                            collected_region = self.collector_manager.get_region_from_result(result)
+                            if result.resource_type == 'inventory.Server':
+                                try:
+                                    collected_region = self.collector_manager.get_region_from_result(result.resource)
 
-                            if collected_region is not None and collected_region.region_code not in collected_region_code:
-                                resource_regions.append(collected_region)
-                                collected_region_code.append(collected_region.region_code)
+                                    if collected_region is not None and collected_region.region_code not in collected_region_code:
+                                        resource_regions.append(collected_region)
+                                        collected_region_code.append(collected_region.region_code)
 
-                            yield result, server_resource_format
+                                except Exception as e:
+                                    _LOGGER.error(f'[collect] {e}')
+
+                                    if type(e) is dict:
+                                        error_resource_response = ErrorResourceResponse({
+                                            'message': json.dumps(e),
+                                            'resource': {'resource_type': 'inventory.Region'}
+                                        })
+                                    else:
+                                        error_resource_response = ErrorResourceResponse({
+                                            'message': str(e),
+                                            'resource': {'resource_type': 'inventory.Region'}
+                                        })
+
+                                    yield error_resource_response
+
+                            yield result
 
                 except Exception as e:
                     _LOGGER.error(f'failed to result {e}')
 
             for resource_region in resource_regions:
-                yield resource_region, region_resource_format
-        '''
+                yield RegionResourceResponse({'resource': resource_region})
 
-        print(f'############## TOTAL FINISHED {time.time() - start_time} Sec ##################')
+        _LOGGER.debug(f'[collect] TOTAL FINISHED {time.time() - start_time} Sec')

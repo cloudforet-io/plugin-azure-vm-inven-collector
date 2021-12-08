@@ -5,7 +5,7 @@ import json
 
 from spaceone.core.service import *
 from spaceone.inventory.manager.collector_manager import CollectorManager
-from spaceone.inventory.model.resource import CloudServiceTypeResourceResponse, ServerResourceResponse, RegionResourceResponse, ErrorResourceResponse
+from spaceone.inventory.model.resource import CloudServiceTypeResourceResponse, RegionResourceResponse, ErrorResourceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -117,6 +117,7 @@ class CollectorService(BaseService):
                 - options
                 - secret_data
                 - filter
+
 
         Returns: list of resources
         """

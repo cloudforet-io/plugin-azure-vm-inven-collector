@@ -40,12 +40,12 @@ class TestMetricManager(unittest.TestCase):
     def test_collector_manager(self, *args):
         self.collector_service.init({'options': {}})
         secret_data = self.azure_credentials
-        self.collector_service.verify({'options': {}, 'secret_data': secret_data})
+        # self.collector_service.verify({'options': {}, 'secret_data': secret_data})
 
         params = {'options': {}, 'secret_data': secret_data, 'filter': {}}
 
         resource_groups = self.collector_manager.list_all_resource_groups(params)
-
+        print(f'resource_groups: {resource_groups}')
         mt_params = []
         for rg in resource_groups:
             vms = self.collector_manager.list_vms(params, rg.name)

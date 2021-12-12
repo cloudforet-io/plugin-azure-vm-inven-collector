@@ -1,5 +1,5 @@
 from schematics import Model
-from schematics.types import serializable, ModelType, ListType, StringType
+from schematics.types import serializable, ModelType, ListType, StringType, FloatType, DateTimeType
 from spaceone.inventory.model import OS, Azure, Hardware, SecurityGroup, Compute, LoadBalancer, VNet, Subnet, \
     NIC, Disk, ServerMetadata, Monitor, VMSS, Subscription, ResourceGroup
 
@@ -48,3 +48,8 @@ class Server(Model):
     cloud_service_group = StringType(default='Compute')
     _metadata = ModelType(ServerMetadata, serialized_name='metadata')
     reference = ModelType(ReferenceModel)
+    account = StringType(serialize_when_none=False)
+    instance_type = StringType(serialize_when_none=False)
+    instance_size = FloatType(serialize_when_none=False)
+    launched_at = DateTimeType(serialize_when_none=False)
+

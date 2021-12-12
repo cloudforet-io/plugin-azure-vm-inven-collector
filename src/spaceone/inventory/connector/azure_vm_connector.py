@@ -33,32 +33,22 @@ class AzureVMConnector(BaseConnector):
         return "ACTIVE"
 
     def set_connect(self, secret_data):
-        try:
-            subscription_id = secret_data['subscription_id']
+        subscription_id = secret_data['subscription_id']
 
-            os.environ["AZURE_SUBSCRIPTION_ID"] = subscription_id
-            os.environ["AZURE_TENANT_ID"] = secret_data['tenant_id']
-            os.environ["AZURE_CLIENT_ID"] = secret_data['client_id']
-            os.environ["AZURE_CLIENT_SECRET"] = secret_data['client_secret']
+        os.environ["AZURE_SUBSCRIPTION_ID"] = subscription_id
+        os.environ["AZURE_TENANT_ID"] = secret_data['tenant_id']
+        os.environ["AZURE_CLIENT_ID"] = secret_data['client_id']
+        os.environ["AZURE_CLIENT_SECRET"] = secret_data['client_secret']
 
-            credential = DefaultAzureCredential()
+        credential = DefaultAzureCredential()
 
-            self.compute_client = ComputeManagementClient(credential=credential, subscription_id=subscription_id)
-            self.network_client = NetworkManagementClient(credential=credential, subscription_id=subscription_id)
-            self.resource_client = ResourceManagementClient(credential=credential, subscription_id=subscription_id)
-            self.subscription_client: SubscriptionClient = SubscriptionClient(credential=credential)
-
-        except Exception as e:
-            _LOGGER.error(f'[ERROR: Azure VM Connector]: {e}')
-            raise
+        self.compute_client = ComputeManagementClient(credential=credential, subscription_id=subscription_id)
+        self.network_client = NetworkManagementClient(credential=credential, subscription_id=subscription_id)
+        self.resource_client = ResourceManagementClient(credential=credential, subscription_id=subscription_id)
+        self.subscription_client: SubscriptionClient = SubscriptionClient(credential=credential)
 
     def list_resource_groups(self):
-        try:
-            return self.resource_client.resource_groups.list()
-
-        except Exception as e:
-            _LOGGER.error(f'[ERROR: Azure VM Connector resource_group]: {e}')
-            raise
+        return self.resource_client.resource_groups.list()
 
     def list_tenants(self):
         return self.subscription_client.tenants.list()

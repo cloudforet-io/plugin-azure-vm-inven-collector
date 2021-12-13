@@ -67,3 +67,11 @@ Please, set authentication privilege for followings:
         - Microsoft.Network/loadBalancers/read
 	
 
+## Release Notes
+### Ver 1.2.14
+* [Add fields to cloud services model(account, instance_type, instance_size, launched_at)](https://github.com/spaceone-dev/plugin-azure-vm-inven-collector/issues/89) 
+* [Add ErrorResources to collect error messages as resources](https://github.com/spaceone-dev/plugin-azure-vm-inven-collector/issues/84)
+
+### Ver 1.2.13
+* [Add RegionResource to collect error messages as resources](https://github.com/spaceone-dev/plugin-azure-vm-inven-collector/issues/84)
+* [Update CI workflows](https://github.com/spaceone-dev/plugin-azure-vm-inven-collector/commit/6e00cda34b953d1bc84e6cf75cb0fb338595058e)

@@ -1,12 +1,12 @@
-# plugin-azure-vm
+# plugin-azure-vm-inven-collector
 
 ![Microsoft Azure Cloud Services](https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-cloud-services.svg)
-**Plugin to collect Microsoft Azure Cloud Services**
+**Plugin to collect Microsoft Azure VM (Virtual Machine)**
 
 **Azure VM Collector** collects Microsoft Azure VMs in user's subscription. You can check all VMs belonging to the resource group and subscription. In addition, associated services such as Load Balancer, Security Groups, NIC, Scale Sets are also displayed through Azure VM Collector.
 
-> SpaceONE's [plugin-azure-cloud-services](https://github.com/spaceone-dev/plugin-azure-vm) is a convenient tool to 
-get cloud service data from Microsoft Azure Cloud Services. 
+> SpaceONE's [plugin-azure-vm-inven-collector](https://github.com/spaceone-dev/plugin-azure-vm-inven-collector) is a convenient tool to 
+get cloud service data from Microsoft Azure VM. 
 
 Find us also at [Dockerhub](https://hub.docker.com/r/spaceone/azure-vm)
 > Latest stable version : 1.2.14

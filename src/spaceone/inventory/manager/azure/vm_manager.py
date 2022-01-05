@@ -391,10 +391,10 @@ class AzureVmManager(BaseManager):
 
     @staticmethod
     def get_image_detail(location, image_reference, subscription_id):
-        publisher = getattr(image_reference, "publisher")
-        offer = getattr(image_reference, "offer")
-        sku = getattr(image_reference, "sku")
-        version = getattr(image_reference, "exact_version")
+        publisher = getattr(image_reference, "publisher", None)
+        offer = getattr(image_reference, "offer", None)
+        sku = getattr(image_reference, "sku", None)
+        version = getattr(image_reference, "exact_version", None)
 
         if publisher and offer and sku and version:
             image_detail = f'/Subscriptions/{subscription_id}/Providers/Microsoft.Compute/Locations/{location}' \

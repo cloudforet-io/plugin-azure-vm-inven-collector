@@ -39,6 +39,15 @@ The information collected for each VM is as follows.
     * NIC
     * Network Security Groups
     * Load Balancer
+    
+
+## Azure Service Endpoint (in use)
+
+ There is an endpoints used to collect Azure resources information.
+
+<pre>
+https://management.azure.com
+</pre>
 
 
 ## Authentication Overview

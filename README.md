@@ -1,6 +1,14 @@
-# plugin-azure-vm-inven-collector
+<h1 align="center">Microsoft Azure VM Collector</h1>  
 
-![Microsoft Azure Cloud Services](https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-cloud-services.svg)
+<br/>  
+<div align="center" style="display:flex;">  
+  <img width="245" src="https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-cloud-services.svg">
+  <p> 
+    <br>
+    <img alt="Version"  src="https://img.shields.io/badge/version-1.2.14-blue.svg?cacheSeconds=2592000"  />    
+    <a href="https://www.apache.org/licenses/LICENSE-2.0"  target="_blank"><img alt="License: Apache 2.0"  src="https://img.shields.io/badge/License-Apache 2.0-yellow.svg" /></a> 
+  </p> 
+</div>  
 **Plugin to collect Microsoft Azure VM (Virtual Machine)**
 
 **Azure VM Collector** collects Microsoft Azure VMs in user's subscription. You can check all VMs belonging to the resource group and subscription. In addition, associated services such as Load Balancer, Security Groups, NIC, Scale Sets are also displayed through Azure VM Collector.
@@ -14,6 +22,7 @@ Find us also at [Dockerhub](https://hub.docker.com/r/spaceone/azure-vm)
 Please contact us if you need any further information. 
 <support@spaceone.dev>
 
+---
 
 ## Setting
 You should insert information about account in SpaceONE's **Service Account** initially.
@@ -29,6 +38,7 @@ You should insert information about account in SpaceONE's **Service Account** in
 	* `Client Secret`
 	* `Client ID`
 
+---
 
 ## Contents
 The information collected for each VM is as follows.
@@ -40,6 +50,7 @@ The information collected for each VM is as follows.
     * Network Security Groups
     * Load Balancer
     
+---
 
 ## Azure Service Endpoint (in use)
 
@@ -49,6 +60,18 @@ The information collected for each VM is as follows.
 https://management.azure.com
 </pre>
 
+---
+
+## Service list
+
+The following is a list of services being collected and service code information.
+
+|No.|Service name|Service Code|
+|---|------|---|
+|1|Virtual Machine|Microsoft.Compute/virtualMachines|
+
+
+---
 
 ## Authentication Overview
 Registered service account on SpaceONE must have certain permissions to collect cloud service data 
@@ -75,6 +98,7 @@ Please, set authentication privilege for followings:
         - Microsoft.Network/networkSecurityGroups/read
         - Microsoft.Network/loadBalancers/read
 	
+---
 
 ## Release Notes
 ### Ver 1.2.14

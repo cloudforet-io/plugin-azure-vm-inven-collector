@@ -9,7 +9,8 @@
     <a href="https://www.apache.org/licenses/LICENSE-2.0"  target="_blank"><img alt="License: Apache 2.0"  src="https://img.shields.io/badge/License-Apache 2.0-yellow.svg" /></a> 
   </p> 
 </div>  
-**Plugin to collect Microsoft Azure VM (Virtual Machine)**
+
+#### Plugin to collect Microsoft Azure VM (Virtual Machine)
 
 **Azure VM Collector** collects Microsoft Azure VMs in user's subscription. You can check all VMs belonging to the resource group and subscription. In addition, associated services such as Load Balancer, Security Groups, NIC, Scale Sets are also displayed through Azure VM Collector.
 

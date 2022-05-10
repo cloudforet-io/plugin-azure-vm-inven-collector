@@ -37,7 +37,7 @@ class RegionResourceResponse(ResourceResponse):
 
 class CloudServiceTypeResourceResponse(ResourceResponse):
     state = StringType(default='SUCCESS')
-    resource_type = StringType(default='inventory.CloudService')
+    resource_type = StringType(default='inventory.CloudServiceType')
     match_rules = DictType(ListType(StringType), default={'1': ['name', 'group', 'provider']})
     resource = PolyModelType(CloudServiceType)
 

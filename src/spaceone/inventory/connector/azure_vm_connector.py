@@ -56,6 +56,9 @@ class AzureVMConnector(BaseConnector):
     def list_vms(self, resource_group_name, **query):
         return list(self.compute_client.virtual_machines.list(resource_group_name=resource_group_name, **query))
 
+    def list_all_vms(self, **query):
+        return list(self.compute_client.virtual_machines.list_all(**query))
+
     def get_vm(self, resource_group_name, vm_name):
         return self.compute_client.virtual_machines.get(resource_group_name, vm_name, expand='instanceView')
 

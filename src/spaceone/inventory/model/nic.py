@@ -13,7 +13,7 @@ class NIC(Model):
     device_index = IntType()
     device = StringType(default="")
     nic_type = StringType(default="")
-    ip_addresses = ListType(StringType())
+    ip_addresses = ListType(StringType(), default=[])
     cidr = StringType()
     mac_address = StringType(default="")
     public_ip_address = StringType()

@@ -83,6 +83,7 @@ class CollectorService(BaseService):
                     'resource_group': rg,
                     'vms': vms
                 })
+
         '''
         if mt_params:
             for mt_param in mt_params:

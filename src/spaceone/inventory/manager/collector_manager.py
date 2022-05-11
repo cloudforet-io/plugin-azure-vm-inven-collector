@@ -1,8 +1,6 @@
 __all__ = ['CollectorManager']
 
-import time
 import logging
-import json
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.connector import AzureVMConnector
 from spaceone.inventory.manager.azure import AzureDiskManager, AzureLoadBalancerManager, \
@@ -15,6 +13,9 @@ from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.cloud_service_type import CloudServiceType
 from spaceone.inventory.model.monitor import Monitor
 from spaceone.inventory.model.resource import ErrorResourceResponse, ServerResourceResponse
+from spaceone.inventory.model.metadata.metadata import CloudServiceTypeMetadata
+from spaceone.inventory.model.metadata.metadata_dynamic_field import TextDyField
+from spaceone.inventory.conf.cloud_service_conf import *
 from spaceone.core.utils import *
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,6 +54,13 @@ class CollectorManager(BaseManager):
             return [vm for vm in vms if vm.location == region_name]
 
         return vms
+
+    def list_all_vms(self, params):
+        azure_vm_connector: AzureVMConnector = self.locator.get_connector('AzureVMConnector')
+        azure_vm_connector.set_connect(params['secret_data'])
+
+        vm_manager: AzureVmManager = AzureVmManager(params, azure_vm_connector=azure_vm_connector)
+        return vm_manager.list_all_vms()
 
     def list_all_resources(self, params):
         servers = []
@@ -102,9 +110,6 @@ class CollectorManager(BaseManager):
         #         vms.append(scale_set_vms)
 
         subscription_info = azure_vm_connector.get_subscription_info(subscription)
-
-        # tenants_info = azure_vm_connector.list_tenants()
-
         subscription_data = {
             'subscription_id': subscription_info.subscription_id,
             'subscription_name': subscription_info.display_name,
@@ -115,12 +120,15 @@ class CollectorManager(BaseManager):
 
         for vm in vms:
             try:
+                vnet_data = None
+                subnet_data = None
+                lb_vos = []
                 disk_vos = disk_manager.get_disk_info(vm, list_disks)
                 nic_vos, primary_ip = nic_manager.get_nic_info(vm, network_interfaces, public_ip_addresses,
                                                                virtual_networks)
 
-                server_data = vm_manager.get_vm_info(vm, resource_group, subscription, network_security_groups,
-                                                     vm_sizes, primary_ip)
+                server_data = vm_manager.get_vm_info(vm, disk_vos, nic_vos, resource_group, subscription,
+                                                     network_security_groups, vm_sizes, primary_ip)
 
                 if load_balancers is not None:
                     lb_vos = load_balancer_manager.get_load_balancer_info(vm, load_balancers, public_ip_addresses)
@@ -131,22 +139,15 @@ class CollectorManager(BaseManager):
                 nic_name = vm.network_profile.network_interfaces[0].id.split('/')[-1]
 
                 if nic_name is not None:
-                    # vnet_data, subnet_data = vnet_manager.get_vnet_info(nic_name, network_interfaces, virtual_networks)
                     vnet_subnet_dict = vnet_manager.get_vnet_subnet_info(nic_name, network_interfaces, virtual_networks)
 
                     if vnet_subnet_dict.get('vnet_info'):
                         vnet_data = vnet_subnet_dict['vnet_info']
-                    else:
-                        vnet_data = None
 
                     if vnet_subnet_dict.get('subnet_info'):
                         subnet_data = vnet_subnet_dict['subnet_info']
-                    else:
-                        subnet_data = None
 
                 server_data.update({
-                    'disks': disk_vos,
-                    'nics': nic_vos,
                     'tags': self.get_tags(vm.tags)
                 })
 
@@ -219,109 +220,22 @@ class CollectorManager(BaseManager):
 
     @staticmethod
     def list_cloud_service_types():
+        metadata = CloudServiceTypeMetadata.set_meta(
+            fields=[
+                TextDyField.data_source('Name', 'name'),
+            ]
+        )
+
         cloud_service_type = {
             'tags': {
                 'spaceone:icon': 'https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-vm.svg',
             },
-            'is_major': True,
-            'is_primary': True,
-            'service_code': 'Microsoft.Compute/virtualMachines'
-
+            '_metadata': metadata
         }
         return [CloudServiceType(cloud_service_type, strict=False)]
 
     @staticmethod
     def get_region_from_result(result):
-        REGION_INFO = {
-            'eastus': {'name': 'US East (Virginia)',
-                       'tags': {'latitude': '37.3719', 'longitude': '-79.8164', 'continent': 'north_america'}},
-            'eastus2': {'name': 'US East 2 (Virginia)',
-                        'tags': {'latitude': '36.6681', 'longitude': '-78.3889', 'continent': 'north_america'}},
-            'westus': {'name': 'US West (California)',
-                       'tags': {'latitude': '37.783', 'longitude': '-122.417', 'continent': 'north_america'}},
-            'westus2': {'name': 'US West 2 (Washington)',
-                        'tags': {'latitude': '47.233', 'longitude': '-119.852', 'continent': 'north_america'}},
-            'centralus': {'name': 'US Central (Iowa)',
-                          'tags': {'latitude': '41.5908', 'longitude': '-93.6208', 'continent': 'north_america'}},
-            'southcentralus': {'name': 'US South Central (Texas)',
-                               'tags': {'latitude': '29.4167', 'longitude': '-98.5', 'continent': 'north_america'}},
-            'northcentralus': {'name': 'US North Central (Illinois)',
-                               'tags': {'latitude': '41.8819', 'longitude': '-87.6278', 'continent': 'north_america'}},
-            'westcentralus': {'name': 'US West Central (Wyoming)',
-                              'tags': {'latitude': '40.890', 'longitude': '-110.234', 'continent': 'north_america'}},
-            'canadacentral': {'name': 'Canada Central (Toronto)',
-                              'tags': {'latitude': '43.653', 'longitude': '-79.383', 'continent': 'north_america'}},
-            'canadaeast': {'name': 'Canada East (Quebec)',
-                           'tags': {'latitude': '46.817', 'longitude': '-71.217', 'continent': 'north_america'}},
-            'southafricanorth': {'name': 'South Africa North (Johannesburg)',
-                                 'tags': {'latitude': '-25.731340', 'longitude': '28.218370', 'continent': 'africa'}},
-            'southafricawest': {'name': 'South Africa West (Cape Town)',
-                                'tags': {'latitude': '-34.075691', 'longitude': '18.843266', 'continent': 'africa'}},
-            'eastasia': {'name': 'Asia Pacific East (Hong Kong)',
-                         'tags': {'latitude': '22.267', 'longitude': '114.188', 'continent': 'asia_pacific'}},
-            'centralindia': {'name': 'Asia Pacific Central India (Pune)',
-                             'tags': {'latitude': '18.5822', 'longitude': '73.9197', 'continent': 'asia_pacific'}},
-            'southindia': {'name': 'Asia Pacific South India (Chennai)',
-                           'tags': {'latitude': '12.9822', 'longitude': '80.1636', 'continent': 'asia_pacific'}},
-            'westindia': {'name': 'Asia Pacific West India (Mumbai)',
-                          'tags': {'latitude': '19.088', 'longitude': '72.868', 'continent': 'asia_pacific'}},
-            'southeastasia': {'name': 'Asia Pacific South East (Singapore)',
-                              'tags': {'latitude': '1.283', 'longitude': '103.833', 'continent': 'asia_pacific'}},
-            'japaneast': {'name': 'Asia Pacific Japan East (Tokyo, Saitama)',
-                          'tags': {'latitude': '35.68', 'longitude': '139.77', 'continent': 'asia_pacific'}},
-            'japanwest': {'name': 'Asia Pacific Japan West (Osaka)',
-                          'tags': {'latitude': '34.6939', 'longitude': '135.5022', 'continent': 'asia_pacific'}},
-            'koreacentral': {'name': 'Asia Pacific Korea Central (Seoul)',
-                             'tags': {'latitude': '37.5665', 'longitude': '126.9780', 'continent': 'asia_pacific'}},
-            'koreasouth': {'name': 'Asia Pacific Korea South (Busan)',
-                           'tags': {'latitude': '35.1796', 'longitude': '129.0756', 'continent': 'asia_pacific'}},
-            'australiaeast': {'name': 'Asia Pacific Australia East (New South Wales)',
-                              'tags': {'latitude': '-33.86', 'longitude': '151.2094', 'continent': 'asia_pacific'}},
-            'australiacentral': {'name': 'Asia Pacific Australia Central (Canberra)',
-                                 'tags': {'latitude': '-35.3075', 'longitude': '149.1244',
-                                          'continent': 'asia_pacific'}},
-            'australiacentral2': {'name': 'Asia Pacific Australia Central 2 (Canberra)',
-                                  'tags': {'latitude': '-35.3075', 'longitude': '149.1244',
-                                           'continent': 'asia_pacific'}},
-            'australiasoutheast': {'name': 'Asia Pacific Australia South East (Victoria)',
-                                   'tags': {'latitude': '-37.8136', 'longitude': '144.9631',
-                                            'continent': 'asia_pacific'}},
-            'northeurope': {'name': 'North Europe (Ireland)',
-                            'tags': {'latitude': '53.3478', 'longitude': '-6.2597', 'continent': 'europe'}},
-            'norwayeast': {'name': 'North Europe (Norway East)',
-                           'tags': {'latitude': '59.913868', 'longitude': '10.752245', 'continent': 'europe'}},
-            'norwaywest': {'name': 'North Europe (Norway West)',
-                           'tags': {'latitude': '58.969975', 'longitude': '5.733107', 'continent': 'europe'}},
-            'germanywestcentral': {'name': 'Europe Germany West Central (Frankfurt)',
-                                   'tags': {'latitude': '50.110924', 'longitude': '8.682127', 'continent': 'europe'}},
-            'germanynorth': {'name': 'Europe Germany North (Berlin)',
-                             'tags': {'latitude': '53.073635', 'longitude': '8.806422', 'continent': 'europe'}},
-            'switzerlandnorth': {'name': 'Europe Switzerland North (Zurich)',
-                                 'tags': {'latitude': '47.451542', 'longitude': '8.564572', 'continent': 'europe'}},
-            'switzerlandwest': {'name': 'Europe Switzerland West (Geneva)',
-                                'tags': {'latitude': '46.204391', 'longitude': '6.143158', 'continent': 'europe'}},
-            'swedencentral': {'name': 'Sweden Central', 'tags': {'latitude': '60.67488', 'longitude': '17.14127'}},
-            'francecentral': {'name': 'Europe France Central (Paris)',
-                              'tags': {'latitude': '46.3772', 'longitude': '2.3730', 'continent': 'europe'}},
-            'francesouth': {'name': 'Europe France South (Marseille)',
-                            'tags': {'latitude': '43.8345', 'longitude': '2.1972', 'continent': 'europe'}},
-            'westeurope': {'name': 'West Europe (Netherlands)',
-                           'tags': {'latitude': '52.3667', 'longitude': '4.9', 'continent': 'europe'}},
-            'uksouth': {'name': 'UK South (London)',
-                        'tags': {'latitude': '50.941', 'longitude': '-0.799', 'continent': 'europe'}},
-            'ukwest': {'name': 'UK West (Cardiff)',
-                       'tags': {'latitude': '53.427', 'longitude': '-3.084', 'continent': 'europe'}},
-            'uaenorth': {'name': 'Middle East UAE North (Dubai)',
-                         'tags': {'latitude': '25.266666', 'longitude': '55.316666', 'continent': 'middle_east'}},
-            'uaecentral': {'name': 'Middle East UAE Central (Abu Dhabi)',
-                           'tags': {'latitude': '24.466667', 'longitude': '54.366669', 'continent': 'middle_east'}},
-            'brazilsouth': {'name': 'South America Brazil South (Sao Paulo State)',
-                            'tags': {'latitude': '-23.55', 'longitude': '-46.633', 'continent': 'south_america'}},
-            'brazilsoutheast': {'name': 'South America Brazil South East (Rio)',
-                                'tags': {'latitude': '-22.90278', 'longitude': '-43.2075',
-                                         'continent': 'south_america'}}
-        }
-
         match_region_info = REGION_INFO.get(getattr(result.data.compute, 'az', None))
 
         if match_region_info:

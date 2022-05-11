@@ -1,5 +1,6 @@
 from schematics import Model
 from schematics.types import ListType, StringType, PolyModelType, DictType, BooleanType
+from spaceone.inventory.model import CloudServiceTypeMetadata
 
 
 class CloudServiceType(Model):
@@ -12,3 +13,4 @@ class CloudServiceType(Model):
     is_major = BooleanType(default=True)
     resource_type = StringType(default='inventory.CloudService')
     service_code = StringType(default='Microsoft.Compute/virtualMachines')
+    _metadata = PolyModelType(CloudServiceTypeMetadata, serialize_when_none=False, serialized_name='metadata')

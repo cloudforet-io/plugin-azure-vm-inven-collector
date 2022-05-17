@@ -164,7 +164,7 @@ class CollectorManager(BaseManager):
 
                 server_data['data']['compute']['account'] = subscription_data['subscription_name']
                 server_data.update({
-                    '_metadata': meta_manager.get_metadata(),
+                    '_metadata': meta_manager.get_server_metadata(),
                     'reference': ReferenceModel({
                         'resource_id': server_data['data']['compute']['instance_id'],
                         'external_link': f"https://portal.azure.com/#@.onmicrosoft.com/resource/subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data['data']['compute']['instance_name']}/overview"
@@ -220,17 +220,13 @@ class CollectorManager(BaseManager):
 
     @staticmethod
     def list_cloud_service_types():
-        metadata = CloudServiceTypeMetadata.set_meta(
-            fields=[
-                TextDyField.data_source('Name', 'name'),
-            ]
-        )
+        meta_manager: MetadataManager = MetadataManager()
 
         cloud_service_type = {
+            '_metadata': meta_manager.get_cloud_service_type_metadata(),
             'tags': {
                 'spaceone:icon': 'https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/azure-vm.svg',
-            },
-            '_metadata': metadata
+            }
         }
         return [CloudServiceType(cloud_service_type, strict=False)]
 

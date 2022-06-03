@@ -44,5 +44,8 @@ setup(
         'azure-mgmt-monitor==1.0.0b1',
         'azure-mgmt-storage==16.0.0b1',
     ],
+    package_data={
+        'spaceone': ['inventory/manager/metadata/widget/*.yaml']
+    },
     zip_safe=False,
 )

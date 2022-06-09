@@ -1,11 +1,8 @@
-import pprint
-
 from spaceone.core.manager import BaseManager
 from spaceone.inventory.model.compute import Compute
 from spaceone.inventory.model.azure import Azure
 from spaceone.inventory.model.os import OS
 from spaceone.inventory.model.hardware import Hardware
-from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.resource_group import ResourceGroup
 from spaceone.inventory.connector.azure_vm_connector import AzureVMConnector
 
@@ -20,18 +17,21 @@ class AzureVmManager(BaseManager):
     def list_vms(self, resource_group_name):
         return self.azure_vm_connector.list_vms(resource_group_name)
 
-    def get_vm_info(self, vm, resource_group, subscription, network_security_groups, vm_sizes, primary_ip):
+    def list_all_vms(self):
+        return self.azure_vm_connector.list_all_vms()
+
+    def get_vm_info(self, vm, disks, nics, resource_group, subscription, network_security_groups, vm_sizes, primary_ip):
         '''
         server_data = {
-            "os_type": "LINUX" | "WINDOWS"
             "name": ""
             "ip_addresses": [],
-            "primary_ip_address": "",
             "data":  {
+                "primary_ip_address": "",
                 "os": {
                     "os_distro": "",
                     "os_arch": "",
-                    "os_details": ""
+                    "os_details": "",
+                    "os_type": "LINUX" | "WINDOWS"
                 },
                 "azure": {
                     "boot_diagnostics": "true" | "false",
@@ -69,13 +69,21 @@ class AzureVmManager(BaseManager):
                         "id": ""
                     }
                 },
+                "nics": [
+                    {  nics_info },
+                    ...
+                ],
+                "disks": [
+                    {  disk_info },
+                    ...
+                ]
             }
         }
         '''
 
         resource_group_name = resource_group.name
 
-        vm_dic = self.get_vm_dic(vm, primary_ip)
+        vm_dic = self.get_vm_dic(vm, nics)
         os_data = self.get_os_data(vm.storage_profile)
         hardware_data = self.get_hardware_data(vm, vm_sizes)
         azure_data = self.get_azure_data(vm)
@@ -89,18 +97,19 @@ class AzureVmManager(BaseManager):
                 'azure': azure_data,
                 'compute': compute_data,
                 'resource_group': resource_group_data,
+                'disks': disks,
+                'nics': nics,
+                'primary_ip_address': self.get_primary_ip_address(primary_ip)
             }
         })
 
         return vm_dic
 
-    def get_vm_dic(self, vm, primary_ip):
+    def get_vm_dic(self, vm, nic_vos):
         vm_data = {
             'name': vm.name,
-            'os_type': self.get_os_type(vm.storage_profile.os_disk),
             'region_code': vm.location,
-            'ip_addresses': self.get_ip_addresses(primary_ip),
-            'primary_ip_address': self.get_primary_ip_address(primary_ip)
+            'ip_addresses': self.get_ip_addresses(nic_vos),
         }
         return vm_data
 
@@ -115,7 +124,8 @@ class AzureVmManager(BaseManager):
                     try:
                         os_data = {
                             'os_distro': self.get_os_distro(os_type, offer),
-                            'details': self.get_os_details(image_reference)
+                            'details': self.get_os_details(image_reference),
+                            'os_type': os_type
                         }
                         return OS(os_data, strict=False)
 
@@ -224,18 +234,22 @@ class AzureVmManager(BaseManager):
         return ""
 
     @staticmethod
-    def get_ip_addresses(primary_ip):
-        if hasattr(primary_ip, 'primary_ip'):
-            ip_addresses = []
-            ip_addresses = list(primary_ip.keys())
-            return ip_addresses
+    def get_ip_addresses(nic_vos):
+        ip_addrs = []
+        for nic_vo in nic_vos:
+            ip_addrs.extend(nic_vo.ip_addresses)
+
+            if nic_vo.public_ip_address:
+                ip_addrs.append(nic_vo.public_ip_address)
+
+        return list(set(ip_addrs))
 
     @staticmethod
     def get_primary_ip_address(primary_ip):
-        if hasattr(primary_ip, 'primary_ip'):
-            for key, value in primary_ip.items():
-                if value:
-                    return key
+        for key, value in primary_ip.items():
+            if value:
+                return key
+
         return ''
 
     @staticmethod

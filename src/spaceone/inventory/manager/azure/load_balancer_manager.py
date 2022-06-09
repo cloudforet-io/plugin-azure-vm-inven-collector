@@ -26,9 +26,7 @@ class AzureLoadBalancerManager(BaseManager):
             }
         }
         """
-
         lb_data = []
-
         match_load_balancers = self.get_load_balancers_from_nic(vm.network_profile.network_interfaces, load_balancers)
 
         for match_load_balancer in match_load_balancers:

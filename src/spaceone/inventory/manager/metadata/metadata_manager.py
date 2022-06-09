@@ -28,9 +28,9 @@ class MetadataManager(BaseManager):
     def get_cloud_service_type_metadata():
         metadata = CloudServiceTypeMetadata.set_meta(
             fields=[
-                TextDyField.data_source('Server ID', 'server_id'),
-                TextDyField.data_source('Name', 'name'),
-                TextDyField.data_source('Resource ID', 'reference.resource_id'),
+                TextDyField.data_source('Cloud Service ID', 'cloud_service_id', options={
+                    'is_optional': True
+                }),
                 EnumDyField.data_source('Management State', 'state', default_state={
                     'safe': ['ACTIVE'], 'disable': ['DELETED']
                 }, options={'is_optional': True}),
@@ -56,9 +56,6 @@ class MetadataManager(BaseManager):
                 TextDyField.data_source('Image', 'data.compute.image', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('Image', 'data.compute.image', options={
-                    'is_optional': True
-                }),
                 EnumDyField.data_source('Instance State', 'data.compute.instance_state', default_state={
                     'safe': ['RUNNING'],
                     'warning': ['PENDING', 'REBOOTING', 'SHUTTING-DOWN', 'STOPPING', 'STARTING',
@@ -75,20 +72,27 @@ class MetadataManager(BaseManager):
                     'is_optional': True
                 }),
                 TextDyField.data_source('Primary IP', 'data.primary_ip_address'),
-                TextDyField.data_source('Public IP', 'data.nics.public_ip_address'),
-                TextDyField.data_source('Public DNS', 'data.tags.public_dns', options={
+                ListDyField.data_source('Public DNS', 'data.nics', options={
+                    'sub_key': 'tags.public_dns',
+                    'is_optional': True
+                }),
+                ListDyField.data_source('Public IP', 'data.nics', options={
+                    'sub_key': 'public_ip_address',
                     'is_optional': True
                 }),
                 TextDyField.data_source('All IP', 'ip_addresses', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('MAC Address', 'nics.mac_address', options={
+                TextDyField.data_source('MAC Address', 'data.nics.mac_address', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('CIDR', 'nics.cidr', options={
+                TextDyField.data_source('CIDR', 'data.vnet.cidr', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('VPC ID', 'data.vpc.vpc_id', options={
+                TextDyField.data_source('VNet ID', 'data.vnet.vnet_id', options={
+                    'is_optional': True
+                }),
+                TextDyField.data_source('VNet Name', 'data.vnet.vnet_name', options={
                     'is_optional': True
                 }),
                 TextDyField.data_source('Subnet ID', 'data.subnet.subnet_id', options={
@@ -97,16 +101,22 @@ class MetadataManager(BaseManager):
                 TextDyField.data_source('Subnet Name', 'data.subnet.subnet_name', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('ELB Name', 'data.load_balancers.name', options={
+                TextDyField.data_source('Load Balancer Name', 'data.load_balancer.name', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('ELB DNS', 'data.load_balancers.dns', options={
+                TextDyField.data_source('Load Balancer DNS', 'data.load_balancer.endpoint', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('IAM Role ARN', 'data.aws.iam_instance_profile.arn', options={
+                TextDyField.data_source('Ultra SSD Enabled', 'data.azure.ultra_ssd_enabled', options={
                     'is_optional': True
                 }),
-                TextDyField.data_source('EC2 Lifecycle', 'data.aws.lifecycle', options={
+                TextDyField.data_source('Write Accelerator Enabled', 'data.azure.write_accelerator_enabled', options={
+                    'is_optional': True
+                }),
+                TextDyField.data_source('Boot Diagnostics', 'data.azure.boot_diagnostics', options={
+                    'is_optional': True
+                }),
+                TextDyField.data_source('Priority', 'data.azure.priority', options={
                     'is_optional': True
                 }),
                 TextDyField.data_source('Auto Scaling Group', 'data.auto_scaling_group.name', options={
@@ -216,7 +226,7 @@ class MetadataManager(BaseManager):
                                           'is_optional': True,
                                           'field_description': '(Daily Max)'
                                       }),
-                TextDyField.data_source('Account ID', 'account'),
+                TextDyField.data_source('Subscription ID', 'account'),
                 TextDyField.data_source('Region', 'region_code',
                                         options={'is_optional': True},
                                         reference={'resource_type': 'inventory.Region',
@@ -249,81 +259,44 @@ class MetadataManager(BaseManager):
                 })
             ],
             search=[
-                {
-                    'title': 'Properties',
-                    'items': [
-                        SearchField.set(name='IP Address', key='ip_addresses'),
-                        SearchField.set(name='Instance ID', key='data.compute.instance_id'),
-                        SearchField.set(name='Instance State', key='data.compute.instance_state'),
-                        SearchField.set(name='Instance Type', key='data.compute.instance_type'),
-                        SearchField.set(name='Key Pair', key='data.compute.keypair'),
-                        SearchField.set(name='Image', key='data.compute.image'),
-                        SearchField.set(name='Availability Zone', key='data.compute.az'),
-                        SearchField.set(name='OS Type', key='data.os.os_type'),
-                        SearchField.set(name='OS Architecture', key='data.os.os_arch'),
-                        SearchField.set(name='MAC Address', key='data.nics.mac_address'),
-                        SearchField.set(name='Public IP Address', key='data.nics.public_ip_address'),
-                        SearchField.set(name='Public DNS', key='data.nics.tags.public_dns'),
-                        SearchField.set(name='VPC ID', key='data.vpc.vpc_id'),
-                        SearchField.set(name='VPC Name', key='data.vpc.vpc_name'),
-                        SearchField.set(name='Subnet ID', key='data.subnet.subnet_id'),
-                        SearchField.set(name='Subnet Name', key='data.subnet.subnet_name'),
-                        SearchField.set(name='ELB Name', key='data.load_balancers.name'),
-                        SearchField.set(name='ELB DNS', key='data.load_balancers.dns'),
-                        SearchField.set(name='Auto Scaling Group', key='data.auto_scaling_group.name'),
-                        SearchField.set(name='Core', key='data.hardware.core', data_type='integer'),
-                        SearchField.set(name='Memory', key='data.hardware.memory', data_type='float'),
-                        SearchField.set(name='Management State', key='state'),
-                        SearchField.set(name='Provider', key='provider', reference='identity.Provider'),
-                        SearchField.set(name='Account ID', key='account'),
-                        SearchField.set(name='Cloud Service Group', key='cloud_service_group'),
-                        SearchField.set(name='Cloud Service Type', key='cloud_service_type'),
-                        SearchField.set(name='Region', key='region_code', reference='inventory.Region'),
-                        SearchField.set(name='Project', key='project_id', reference='identity.Project'),
-                        SearchField.set(name='Project Group', key='project_group_id',
-                                        reference='identity.ProjectGroup'),
-                        SearchField.set(name='Service Account', key='collection_info.service_accounts',
-                                        reference='identity.ServiceAccount'),
-                        SearchField.set(name='Secret', key='collection_info.secrets',
-                                        reference='secret.Secret'),
-                        SearchField.set(name='Launched', key='launched_at'),
-                        SearchField.set(name='Last Collected', key='updated_at', data_type='datetime'),
-                        SearchField.set(name='Created', key='created_at', data_type='datetime'),
-                        SearchField.set(name='Deleted', key='deleted_at', data_type='datetime')
-                    ]
-                },
-                {
-                    'title': 'Monitoring',
-                    'items': [
-                        SearchField.set(name='CPU Utilization (Average)', key='data.monitoring.cpu.utilization.avg',
-                                        data_type='float'),
-                        SearchField.set(name='CPU Utilization (Max)', key='data.monitoring.cpu.utilization.max',
-                                        data_type='float'),
-                        SearchField.set(name='Disk Write IOPS (Average)', key='data.monitoring.disk.write_iops.avg',
-                                        data_type='float'),
-                        SearchField.set(name='Disk Write IOPS (Max)', key='data.monitoring.disk.write_iops.max',
-                                        data_type='float'),
-                        SearchField.set(name='Disk Read IOPS (Average)', key='data.monitoring.disk.read_iops.avg',
-                                        data_type='float'),
-                        SearchField.set(name='Disk Read IOPS (Max)', key='data.monitoring.disk.read_iops.max',
-                                        data_type='float'),
-                        SearchField.set(name='Network In (Average)',
-                                        key='data.monitoring.network.received_throughput.avg',
-                                        data_type='float'),
-                        SearchField.set(name='Network In (Max)', key='data.monitoring.network.received_throughput.max',
-                                        data_type='float'),
-                        SearchField.set(name='Network Out (Average)', key='data.monitoring.network.sent_throughput.avg',
-                                        data_type='float'),
-                        SearchField.set(name='Network Out (Max)', key='data.monitoring.network.sent_throughput.max',
-                                        data_type='float')
-                    ]
-                },
-                {
-                    'title': 'Advanced',
-                    'items': [
-                        SearchField.set(name='Tags', key='tags', data_type='object')
-                    ]
-                }
+                SearchField.set(name='IP Address', key='ip_addresses'),
+                SearchField.set(name='Instance ID', key='data.compute.instance_id'),
+                SearchField.set(name='Instance State', key='data.compute.instance_state'),
+                SearchField.set(name='Instance Type', key='data.compute.instance_type'),
+                SearchField.set(name='Key Pair', key='data.compute.keypair'),
+                SearchField.set(name='Image', key='data.compute.image'),
+                SearchField.set(name='Availability Zone', key='data.compute.az'),
+                SearchField.set(name='OS Type', key='data.os.os_type'),
+                SearchField.set(name='OS Architecture', key='data.os.os_arch'),
+                SearchField.set(name='MAC Address', key='data.nics.mac_address'),
+                SearchField.set(name='Public IP Address', key='data.nics.public_ip_address'),
+                SearchField.set(name='Public DNS', key='data.nics.tags.public_dns'),
+                SearchField.set(name='VNet ID', key='data.vnet.vnet_id'),
+                SearchField.set(name='VNet Name', key='data.vnet.vnet_name'),
+                SearchField.set(name='Subnet ID', key='data.subnet.subnet_id'),
+                SearchField.set(name='Subnet Name', key='data.subnet.subnet_name'),
+                SearchField.set(name='ELB Name', key='data.load_balancer.name'),
+                SearchField.set(name='ELB DNS', key='data.load_balancer.endpoint'),
+                SearchField.set(name='Auto Scaling Group', key='data.auto_scaling_group.name'),
+                SearchField.set(name='Core', key='data.hardware.core', data_type='integer'),
+                SearchField.set(name='Memory', key='data.hardware.memory', data_type='float'),
+                SearchField.set(name='Management State', key='state'),
+                SearchField.set(name='Provider', key='provider', reference='identity.Provider'),
+                SearchField.set(name='Subscription ID', key='account'),
+                SearchField.set(name='Cloud Service Group', key='cloud_service_group'),
+                SearchField.set(name='Cloud Service Type', key='cloud_service_type'),
+                SearchField.set(name='Region', key='region_code', reference='inventory.Region'),
+                SearchField.set(name='Project', key='project_id', reference='identity.Project'),
+                SearchField.set(name='Project Group', key='project_group_id',
+                                reference='identity.ProjectGroup'),
+                SearchField.set(name='Service Account', key='collection_info.service_accounts',
+                                reference='identity.ServiceAccount'),
+                SearchField.set(name='Secret', key='collection_info.secrets',
+                                reference='secret.Secret'),
+                SearchField.set(name='Launched', key='launched_at'),
+                SearchField.set(name='Last Collected', key='updated_at', data_type='datetime'),
+                SearchField.set(name='Created', key='created_at', data_type='datetime'),
+                SearchField.set(name='Deleted', key='deleted_at', data_type='datetime')
             ],
             widget=[
                 CardWidget.set(**get_data_from_yaml(total_count_conf)),
@@ -366,10 +339,14 @@ class MetadataManager(BaseManager):
             EnumDyField.data_source('Boot Diagnostics', 'data.azure.boot_diagnostics', default_badge={
                 'indigo.500': ['true'], 'coral.600': ['false']
             }),
-            ListDyField.data_source('Public IP', 'nics',
-                                    default_badge={'type': 'outline', 'sub_key': 'public_ip_address'}),
-            ListDyField.data_source('Security Groups', 'data.compute.security_groups',
-                                    default_badge={'type': 'outline', 'delimiter': '<br>', 'sub_key': 'display'}),
+            ListDyField.data_source('Public IP', 'nics', options={
+                'sub_key': 'public_ip_address',
+                'delimiter': '<br>'
+            }),
+            ListDyField.data_source('Security Groups', 'data.compute.security_groups', options={
+                'sub_key': 'display',
+                'delimiter': '<br>'
+            }),
             DateTimeDyField.data_source('Launched At', 'data.compute.launched_at'),
         ])
 
@@ -409,7 +386,7 @@ class MetadataManager(BaseManager):
 
         azure_vm = ListDynamicLayout.set_layouts('Azure VM', layouts=[virtual_machine, vm_os, vm_hw, vnet])
 
-        disk = TableDynamicLayout.set_fields('Disk', root_path='disks', fields=[
+        disk = TableDynamicLayout.set_fields('Disk', root_path='data.disks', fields=[
             TextDyField.data_source('Index', 'device_index'),
             TextDyField.data_source('Name', 'tags.disk_name'),
             SizeField.data_source('Size', 'size'),
@@ -421,7 +398,7 @@ class MetadataManager(BaseManager):
             TextDyField.data_source('Caching', 'tags.caching'),
         ])
 
-        nic = TableDynamicLayout.set_fields('NIC', root_path='nics', fields=[
+        nic = TableDynamicLayout.set_fields('NIC', root_path='data.nics', fields=[
             TextDyField.data_source('Index', 'device_index'),
             TextDyField.data_source('Name', 'tags.name'),
             ListDyField.data_source('IP Addresses', 'ip_addresses', options={'delimiter': '<br>'}),

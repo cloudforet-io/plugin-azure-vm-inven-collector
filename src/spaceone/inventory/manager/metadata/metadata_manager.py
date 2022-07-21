@@ -28,25 +28,19 @@ class MetadataManager(BaseManager):
     def get_cloud_service_type_metadata():
         metadata = CloudServiceTypeMetadata.set_meta(
             fields=[
+                EnumDyField.data_source('Instance State', 'data.compute.instance_state', default_state={
+                    'safe': ['RUNNING'],
+                    'warning': ['PENDING', 'REBOOTING', 'SHUTTING-DOWN', 'STOPPING', 'STARTING',
+                                'PROVISIONING', 'STAGING', 'DEALLOCATING', 'REPAIRING'],
+                    'alert': ['STOPPED', 'DEALLOCATED', 'SUSPENDED'],
+                    'disable': ['TERMINATED']
+                }, options={'is_optional': True}),
                 TextDyField.data_source('Cloud Service ID', 'cloud_service_id', options={
                     'is_optional': True
                 }),
-                EnumDyField.data_source('Management State', 'state', default_state={
-                    'safe': ['ACTIVE'], 'disable': ['DELETED']
-                }, options={'is_optional': True}),
                 TextDyField.data_source('Instance Type', 'data.compute.instance_type'),
                 TextDyField.data_source('Core', 'data.hardware.core'),
                 TextDyField.data_source('Memory', 'data.hardware.memory'),
-                TextDyField.data_source('Provider', 'provider', reference={
-                    'resource_type': 'identity.Provider',
-                    'reference_key': 'provider'
-                }),
-                TextDyField.data_source('Cloud Service Group', 'cloud_service_group', options={
-                    'is_optional': True
-                }),
-                TextDyField.data_source('Cloud Service Type', 'cloud_service_type', options={
-                    'is_optional': True
-                }),
                 TextDyField.data_source('Instance ID', 'data.compute.instance_id', options={
                     'is_optional': True
                 }),
@@ -56,13 +50,7 @@ class MetadataManager(BaseManager):
                 TextDyField.data_source('Image', 'data.compute.image', options={
                     'is_optional': True
                 }),
-                EnumDyField.data_source('Instance State', 'data.compute.instance_state', default_state={
-                    'safe': ['RUNNING'],
-                    'warning': ['PENDING', 'REBOOTING', 'SHUTTING-DOWN', 'STOPPING', 'STARTING',
-                                'PROVISIONING', 'STAGING', 'DEALLOCATING', 'REPAIRING'],
-                    'alert': ['STOPPED', 'DEALLOCATED', 'SUSPENDED'],
-                    'disable': ['TERMINATED']
-                }, options={'is_optional': True}),
+
                 TextDyField.data_source('Availability Zone', 'data.compute.az'),
                 TextDyField.data_source('OS Type', 'data.os.os_type', options={
                     'is_optional': True
@@ -227,36 +215,7 @@ class MetadataManager(BaseManager):
                                           'field_description': '(Daily Max)'
                                       }),
                 TextDyField.data_source('Subscription ID', 'account'),
-                TextDyField.data_source('Region', 'region_code',
-                                        options={'is_optional': True},
-                                        reference={'resource_type': 'inventory.Region',
-                                                   'reference_key': 'region_code'}),
-                TextDyField.data_source('Project', 'project_id',
-                                        options={'sortable': False},
-                                        reference={'resource_type': 'identity.Project',
-                                                   'reference_key': 'project_id'}),
-                TextDyField.data_source('Service Accounts', 'collection_info.service_accounts',
-                                        options={'is_optional': True},
-                                        reference={'resource_type': 'identity.ServiceAccount',
-                                                   'reference_key': 'service_account_id'}),
-                TextDyField.data_source('Secrets', 'collection_info.secrets',
-                                        options={'is_optional': True},
-                                        reference={'resource_type': 'secret.Secret',
-                                                   'reference_key': 'secret_id'}),
-                TextDyField.data_source('Collectors', 'collection_info.collectors',
-                                        options={'is_optional': True},
-                                        reference={'resource_type': 'inventory.Collector',
-                                                   'reference_key': 'collector_id'}),
                 TextDyField.data_source('Launched', 'launched_at', options={'is_optional': True}),
-                DateTimeDyField.data_source('Last Collected', 'updated_at', options={'source_type': "iso8601"}),
-                DateTimeDyField.data_source('Created', 'created_at', options={
-                    'source_type': "iso8601",
-                    'is_optional': True
-                }),
-                DateTimeDyField.data_source('Deleted', 'deleted_at', options={
-                    'source_type': "iso8601",
-                    'is_optional': True
-                })
             ],
             search=[
                 SearchField.set(name='IP Address', key='ip_addresses'),
@@ -281,22 +240,14 @@ class MetadataManager(BaseManager):
                 SearchField.set(name='Core', key='data.hardware.core', data_type='integer'),
                 SearchField.set(name='Memory', key='data.hardware.memory', data_type='float'),
                 SearchField.set(name='Management State', key='state'),
-                SearchField.set(name='Provider', key='provider', reference='identity.Provider'),
                 SearchField.set(name='Subscription ID', key='account'),
                 SearchField.set(name='Cloud Service Group', key='cloud_service_group'),
                 SearchField.set(name='Cloud Service Type', key='cloud_service_type'),
-                SearchField.set(name='Region', key='region_code', reference='inventory.Region'),
-                SearchField.set(name='Project', key='project_id', reference='identity.Project'),
                 SearchField.set(name='Project Group', key='project_group_id',
                                 reference='identity.ProjectGroup'),
                 SearchField.set(name='Service Account', key='collection_info.service_accounts',
                                 reference='identity.ServiceAccount'),
-                SearchField.set(name='Secret', key='collection_info.secrets',
-                                reference='secret.Secret'),
                 SearchField.set(name='Launched', key='launched_at'),
-                SearchField.set(name='Last Collected', key='updated_at', data_type='datetime'),
-                SearchField.set(name='Created', key='created_at', data_type='datetime'),
-                SearchField.set(name='Deleted', key='deleted_at', data_type='datetime')
             ],
             widget=[
                 CardWidget.set(**get_data_from_yaml(total_count_conf)),

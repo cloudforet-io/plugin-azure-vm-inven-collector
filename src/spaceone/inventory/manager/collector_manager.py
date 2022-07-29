@@ -5,16 +5,15 @@ from spaceone.core.manager import BaseManager
 from spaceone.inventory.connector import AzureVMConnector
 from spaceone.inventory.manager.azure import AzureDiskManager, AzureLoadBalancerManager, \
     AzureNetworkSecurityGroupManager, AzureNICManager, AzureResourceGroupManager, AzureVmManager, \
-    AzureVMScaleSetManager, AzureVNetManager
+    AzureVNetManager
 from spaceone.inventory.manager.metadata.metadata_manager import MetadataManager
 from spaceone.inventory.model.server import Server, ReferenceModel
 from spaceone.inventory.model.region import Region
 from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.cloud_service_type import CloudServiceType
 from spaceone.inventory.model.monitor import Monitor
+from spaceone.inventory.model.activity_log import ActivityLog
 from spaceone.inventory.model.resource import ErrorResourceResponse, ServerResourceResponse
-from spaceone.inventory.model.metadata.metadata import CloudServiceTypeMetadata
-from spaceone.inventory.model.metadata.metadata_dynamic_field import TextDyField
 from spaceone.inventory.conf.cloud_service_conf import *
 from spaceone.core.utils import *
 
@@ -159,6 +158,9 @@ class CollectorManager(BaseManager):
                     'subscription': Subscription(subscription_data, strict=False),
                     'azure_monitor': Monitor({
                         'resource_id': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
+                    }, strict=False),
+                    'activity_log': ActivityLog({
+                        'resource_uri': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
                     }, strict=False)
                 })
 

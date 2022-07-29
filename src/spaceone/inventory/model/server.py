@@ -1,7 +1,7 @@
 from schematics import Model
-from schematics.types import serializable, ModelType, ListType, StringType, FloatType, DateTimeType
+from schematics.types import ModelType, ListType, StringType, FloatType, DateTimeType
 from spaceone.inventory.model import OS, Azure, Hardware, SecurityGroup, Compute, LoadBalancer, VNet, Subnet, \
-    NIC, Disk, ServerMetadata, Monitor, VMSS, Subscription, ResourceGroup
+    NIC, Disk, ServerMetadata, Monitor, VMSS, Subscription, ResourceGroup, ActivityLog
 
 
 class ReferenceModel(Model):
@@ -28,6 +28,7 @@ class ServerData(Model):
     subnet = ModelType(Subnet)
     vmss = ModelType(VMSS, serialize_when_none=False)
     azure_monitor = ModelType(Monitor, serialize_when_none=False)
+    activity_log = ModelType(ActivityLog, serialize_when_none=False)
     primary_ip_address = StringType(default='')
     disks = ListType(ModelType(Disk))
     nics = ListType(ModelType(NIC))

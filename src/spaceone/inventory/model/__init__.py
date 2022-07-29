@@ -13,6 +13,7 @@ from spaceone.inventory.model.vmss import VMSS
 from spaceone.inventory.model.subscription import Subscription
 from spaceone.inventory.model.resource_group import ResourceGroup
 from spaceone.inventory.model.region import Region
+from spaceone.inventory.model.activity_log import ActivityLog
 
 # METADATA
 from spaceone.inventory.model.metadata.metadata import *

@@ -150,6 +150,8 @@ class CollectorManager(BaseManager):
                     'tags': self.get_tags(vm.tags)
                 })
 
+                resource_id = f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
+
                 server_data['data'].update({
                     'load_balancer': lb_vos,
                     'security_group': nsg_vos,
@@ -157,10 +159,10 @@ class CollectorManager(BaseManager):
                     'subnet': subnet_data,
                     'subscription': Subscription(subscription_data, strict=False),
                     'azure_monitor': Monitor({
-                        'resource_id': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
+                        'resource_id': resource_id
                     }, strict=False),
                     'activity_log': ActivityLog({
-                        'resource_uri': f'subscriptions/{subscription}/resourceGroups/{resource_group_name}/providers/Microsoft.Compute/virtualMachines/{server_data["name"]}'
+                        'resource_uri': resource_id
                     }, strict=False)
                 })
 
